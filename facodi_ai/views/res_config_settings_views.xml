@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.facodi.ai</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="FACODI AI" string="FACODI AI" name="facodi_ai" groups="base.group_system">
+                    <block title="AI Runtime" name="facodi_ai_runtime">
+                        <setting string="Enable FACODI AI" help="Enable server-side FACODI AI capabilities for installed feature integrations.">
+                            <field name="facodi_ai_enabled"/>
+                        </setting>
+                        <setting string="Default Provider" help="Fallback provider for AI profiles that do not define their own provider.">
+                            <field name="facodi_ai_default_provider_code"/>
+                        </setting>
+                    </block>
+
+                    <block title="Connections" name="facodi_ai_connections">
+                        <setting string="OpenAI" help="Default active OpenAI connection. The connection record remains the source of truth.">
+                            <field name="facodi_ai_default_openai_connection_id" domain="[('provider_id.code', '=', 'openai'), ('active', '=', True)]" options="{'no_create': True}"/>
+                            <div class="text-muted mt8">
+                                Recommended model: <field name="recommended_openai_model" class="oe_inline" readonly="1"/>
+                            </div>
+                        </setting>
+                        <setting string="Gemini" help="Default active Gemini connection. Odoo-stored credentials take precedence over the GEMINI_API_KEY runtime fallback.">
+                            <field name="facodi_ai_default_gemini_connection_id" domain="[('provider_id.code', '=', 'gemini'), ('active', '=', True)]" options="{'no_create': True}"/>
+                            <div class="text-muted mt8">
+                                Recommended model: <field name="recommended_gemini_model" class="oe_inline" readonly="1"/>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="Diagnostics" name="facodi_ai_diagnostics">
+                        <setting string="Store request payloads" help="Store request and response payloads for debugging. Leave disabled unless needed because payloads can contain Website content.">
+                            <field name="store_request_payloads"/>
+                        </setting>
+                        <setting string="Advanced Configuration" help="Manage connections, providers, profiles and prompts in the FACODI AI application.">
+                            <button name="%(facodi_ai.action_facodi_ai_connection)d" type="action" string="Open FACODI AI Configuration" class="btn-link" icon="oi-arrow-right"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

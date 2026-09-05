@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_facodi_ai_connection_list" model="ir.ui.view">
+        <field name="name">facodi.ai.connection.list</field>
+        <field name="model">facodi.ai.connection</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="provider_id"/>
+                <field name="is_default"/>
+                <field name="api_key_configured"/>
+                <field name="last_test_status"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_facodi_ai_connection_form" model="ir.ui.view">
+        <field name="name">facodi.ai.connection.form</field>
+        <field name="model">facodi.ai.connection</field>
+        <field name="arch" type="xml">
+            <form string="AI Connection">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="provider_id"/>
+                            <field name="active"/>
+                            <field name="is_default"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group string="Credentials">
+                            <field name="api_key" password="True"/>
+                            <field name="api_key_configured" readonly="1"/>
+                            <field name="credential_uuid" readonly="1" groups="base.group_no_one"/>
+                        </group>
+                    </group>
+                    <group string="Provider Options">
+                        <field name="base_url"/>
+                        <field name="organization"/>
+                        <field name="project"/>
+                    </group>
+                    <group string="Connection Status">
+                        <field name="last_test_status" readonly="1"/>
+                        <field name="last_tested_at" readonly="1"/>
+                        <field name="last_test_message" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facodi_ai_connection" model="ir.actions.act_window">
+        <field name="name">Connections</field>
+        <field name="res_model">facodi.ai.connection</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

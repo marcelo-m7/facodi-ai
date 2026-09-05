@@ -17,7 +17,12 @@ class ProviderAdapterRegistry:
         try:
             return self._adapters[key]
         except KeyError as exc:
-            raise ConfigurationError(f"Provider adapter '{key}' is not registered.") from exc
+            raise ConfigurationError(
+                f"Provider adapter '{key}' is not registered."
+            ) from exc
 
     def keys(self):
         return tuple(self._adapters)
+
+
+provider_registry = ProviderAdapterRegistry()
