@@ -58,6 +58,7 @@ jobs:
             --workers=0 \
             --without-demo=True \
             --test-enable \
+            --test-tags=/facodi_ai,/facodi_ai_website \
             --stop-after-init \
             --init=facodi_ai,facodi_ai_website \
             2>&1 | tee /tmp/odoo-clean-install.log
@@ -88,6 +89,7 @@ jobs:
             --workers=0 \
             --without-demo=True \
             --test-enable \
+            --test-tags=/facodi_ai,/facodi_ai_website \
             --stop-after-init \
             --update=facodi_ai,facodi_ai_website \
             2>&1 | tee /tmp/odoo-upgrade.log
