@@ -24,6 +24,18 @@ class RepositoryContractTest(unittest.TestCase):
         requirements = (ROOT / "requirements.txt").read_text().splitlines()
         self.assertEqual(requirements, ["pydantic-ai-slim[openai,google]==2.39.0"])
 
+    def test_ci_isolates_ai_dependencies_from_odoo_system_python(self):
+        dockerfile = (ROOT / "docker" / "Dockerfile.ci").read_text()
+        self.assertIn(
+            "python3 -m venv --system-site-packages /opt/facodi-ai-venv",
+            dockerfile,
+        )
+        self.assertNotIn("--ignore-installed", dockerfile)
+        self.assertIn(
+            "/opt/facodi-ai-venv/bin/python3 /usr/bin/odoo",
+            dockerfile,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

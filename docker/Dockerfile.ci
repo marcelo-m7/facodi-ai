@@ -1,11 +1,16 @@
 FROM odoo:19.0
 
 USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv --system-site-packages /opt/facodi-ai-venv
 COPY requirements.txt /tmp/facodi-ai-requirements.txt
-RUN python3 -m pip install \
-    --no-cache-dir \
-    --break-system-packages \
-    --ignore-installed \
-    -r /tmp/facodi-ai-requirements.txt \
-    && python3 -c "import pydantic_ai"
+RUN /opt/facodi-ai-venv/bin/pip install --no-cache-dir -r /tmp/facodi-ai-requirements.txt \
+    && /opt/facodi-ai-venv/bin/python3 -c "import OpenSSL, cryptography, pydantic_ai"
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    'exec /opt/facodi-ai-venv/bin/python3 /usr/bin/odoo "$@"' \
+    > /usr/local/bin/odoo \
+    && chmod 0755 /usr/local/bin/odoo
 USER odoo
