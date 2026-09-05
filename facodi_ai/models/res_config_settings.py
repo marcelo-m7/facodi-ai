@@ -12,7 +12,7 @@ class ResConfigSettings(models.TransientModel):
         config_parameter="facodi_ai.enabled",
         default=True,
     )
-    default_provider_code = fields.Selection(
+    facodi_ai_default_provider_code = fields.Selection(
         [
             ("gemini", "Gemini"),
             ("openai", "OpenAI"),
@@ -28,14 +28,14 @@ class ResConfigSettings(models.TransientModel):
         help="Store request and response payloads for debugging. Keep disabled unless needed because payloads may contain Website content.",
     )
 
-    default_openai_connection_id = fields.Many2one(
+    facodi_ai_default_openai_connection_id = fields.Many2one(
         "facodi.ai.connection",
         string="Default OpenAI Connection",
         compute="_compute_default_connection_ids",
         inverse="_inverse_default_openai_connection_id",
         groups="base.group_system",
     )
-    default_gemini_connection_id = fields.Many2one(
+    facodi_ai_default_gemini_connection_id = fields.Many2one(
         "facodi.ai.connection",
         string="Default Gemini Connection",
         compute="_compute_default_connection_ids",
@@ -74,8 +74,8 @@ class ResConfigSettings(models.TransientModel):
             limit=1,
         )
         for settings in self:
-            settings.default_openai_connection_id = openai
-            settings.default_gemini_connection_id = gemini
+            settings.facodi_ai_default_openai_connection_id = openai
+            settings.facodi_ai_default_gemini_connection_id = gemini
 
     def _set_provider_default_connection(self, provider_code, connection):
         Connection = self.env["facodi.ai.connection"].sudo()
@@ -103,11 +103,11 @@ class ResConfigSettings(models.TransientModel):
     def _inverse_default_openai_connection_id(self):
         for settings in self:
             settings._set_provider_default_connection(
-                "openai", settings.default_openai_connection_id
+                "openai", settings.facodi_ai_default_openai_connection_id
             )
 
     def _inverse_default_gemini_connection_id(self):
         for settings in self:
             settings._set_provider_default_connection(
-                "gemini", settings.default_gemini_connection_id
+                "gemini", settings.facodi_ai_default_gemini_connection_id
             )
