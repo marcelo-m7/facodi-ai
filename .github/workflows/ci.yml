@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "implementation/**"
+  pull_request:
+
+jobs:
+  repository-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run repository contract tests
+        run: python -m unittest tests.test_repository_contract -v
+
+  odoo-install-upgrade:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: facodi_ai_test
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U odoo -d facodi_ai_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Odoo CI image
+        run: docker build -f docker/Dockerfile.ci -t facodi-ai-ci .
+      - name: Clean install addons
+        shell: bash
+        run: |
+          set -o pipefail
+          docker run --rm --network host \
+            -e HOST=127.0.0.1 \
+            -e PORT=5432 \
+            -e USER=odoo \
+            -e PASSWORD=odoo \
+            -v "$PWD:/mnt/extra-addons" \
+            facodi-ai-ci \
+            odoo \
+            --db_host=127.0.0.1 \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --database=facodi_ai_test \
+            --workers=0 \
+            --without-demo=True \
+            --test-enable \
+            --test-tags=/facodi_ai,/facodi_ai_website \
+            --stop-after-init \
+            --init=facodi_ai,facodi_ai_website \
+            2>&1 | tee /tmp/odoo-clean-install.log
+      - name: Upload clean-install log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo-clean-install-log
+          path: /tmp/odoo-clean-install.log
+          if-no-files-found: ignore
+      - name: Upgrade addons
+        shell: bash
+        run: |
+          set -o pipefail
+          docker run --rm --network host \
+            -e HOST=127.0.0.1 \
+            -e PORT=5432 \
+            -e USER=odoo \
+            -e PASSWORD=odoo \
+            -v "$PWD:/mnt/extra-addons" \
+            facodi-ai-ci \
+            odoo \
+            --db_host=127.0.0.1 \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --database=facodi_ai_test \
+            --workers=0 \
+            --without-demo=True \
+            --test-enable \
+            --test-tags=/facodi_ai,/facodi_ai_website \
+            --stop-after-init \
+            --update=facodi_ai,facodi_ai_website \
+            2>&1 | tee /tmp/odoo-upgrade.log
+      - name: Upload upgrade log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo-upgrade-log
+          path: /tmp/odoo-upgrade.log
+          if-no-files-found: ignore
