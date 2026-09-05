@@ -5,6 +5,7 @@
     "category": "Productivity",
     "depends": ["base", "web"],
     "external_dependencies": {"python": ["pydantic_ai"]},
+    "data": ["data/provider_data.xml"],
     "application": True,
     "installable": True,
     "license": "LGPL-3",
