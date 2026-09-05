@@ -46,8 +46,8 @@ class TestSecuritySettings(TransactionCase):
 
     def test_settings_default_connection_uses_connection_flag(self):
         settings_model = self.env["res.config.settings"]
-        self.assertIn("default_openai_connection_id", settings_model._fields)
-        self.assertIn("default_gemini_connection_id", settings_model._fields)
+        self.assertIn("facodi_ai_default_openai_connection_id", settings_model._fields)
+        self.assertIn("facodi_ai_default_gemini_connection_id", settings_model._fields)
 
         provider = self.env.ref("facodi_ai.provider_openai")
         first = self.env["facodi.ai.connection"].create(
@@ -64,9 +64,9 @@ class TestSecuritySettings(TransactionCase):
             }
         )
         settings = settings_model.create({})
-        self.assertEqual(settings.default_openai_connection_id, first)
+        self.assertEqual(settings.facodi_ai_default_openai_connection_id, first)
 
-        settings.write({"default_openai_connection_id": second.id})
+        settings.write({"facodi_ai_default_openai_connection_id": second.id})
         self.assertFalse(first.is_default)
         self.assertTrue(second.is_default)
 
@@ -74,7 +74,7 @@ class TestSecuritySettings(TransactionCase):
         settings_model = self.env["res.config.settings"]
         for field_name in (
             "facodi_ai_enabled",
-            "default_provider_code",
+            "facodi_ai_default_provider_code",
             "store_request_payloads",
             "recommended_openai_model",
             "recommended_gemini_model",
@@ -89,7 +89,7 @@ class TestSecuritySettings(TransactionCase):
         settings.write(
             {
                 "facodi_ai_enabled": False,
-                "default_provider_code": "openai",
+                "facodi_ai_default_provider_code": "openai",
                 "store_request_payloads": True,
             }
         )
