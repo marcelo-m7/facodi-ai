@@ -95,7 +95,7 @@ class TestSecuritySettings(TransactionCase):
         )
         settings.set_values()
         params = self.env["ir.config_parameter"].sudo()
-        self.assertEqual(params.get_param("facodi_ai.enabled"), "False")
+        self.assertFalse(params.get_param("facodi_ai.enabled"))
         self.assertEqual(params.get_param("facodi_ai.default_provider"), "openai")
         self.assertEqual(params.get_param("facodi_ai.store_request_payloads"), "True")
 
