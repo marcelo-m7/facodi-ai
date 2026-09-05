@@ -24,6 +24,11 @@ PROFILE_DEFAULTS = MappingProxyType(
 )
 
 
+def get_provider_defaults(code):
+    values = PROVIDER_DEFAULTS.get(code)
+    return deepcopy(dict(values)) if values is not None else {}
+
+
 def get_profile_defaults(code):
     values = PROFILE_DEFAULTS.get(code)
     if values is None:
