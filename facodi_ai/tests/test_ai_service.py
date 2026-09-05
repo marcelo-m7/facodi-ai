@@ -67,7 +67,12 @@ class TestAIService(TransactionCase):
             "prompt_id": self._prompt().id,
         }
         if provider:
-            values["provider_id"] = provider.id
+            values.update(
+                {
+                    "provider_id": provider.id,
+                    "model_override": "test-model",
+                }
+            )
         if connection:
             values["connection_id"] = connection.id
         return self.env["facodi.ai.profile"].create(values)
