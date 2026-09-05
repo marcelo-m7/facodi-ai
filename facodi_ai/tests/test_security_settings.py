@@ -9,13 +9,18 @@ class TestSecuritySettings(TransactionCase):
         return group
 
     def _user(self, login, groups):
-        return self.env["res.users"].create(
-            {
-                "name": login,
-                "login": login,
-                "group_ids": [(6, 0, groups.ids)],
-            }
-        )
+        values = {
+            "name": login,
+            "login": login,
+            "group_ids": [(6, 0, groups.ids)],
+        }
+        # During an addon upgrade the database can already contain NOT NULL
+        # columns contributed by modules that are loaded later in the current
+        # registry build. Supply their required value only when the field is
+        # available, while keeping the same test valid on a clean install.
+        if "notification_type" in self.env["res.users"]._fields:
+            values["notification_type"] = "email"
+        return self.env["res.users"].create(values)
 
     def test_internal_user_cannot_read_connection_records(self):
         user = self._user("ai-consumer", self.env.ref("base.group_user"))
