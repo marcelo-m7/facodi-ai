@@ -1,14 +1,14 @@
 import unittest
 
-from facodi_ai.services.contracts import (
+from ..services.contracts import (
     TranslationInputUnit,
     TranslationResult,
     TranslationUnitResult,
     validate_translation_result,
 )
-from facodi_ai.services.defaults import get_profile_defaults
-from facodi_ai.services.errors import ConfigurationError, ValidationError
-from facodi_ai.services.provider_registry import ProviderAdapterRegistry
+from ..services.defaults import get_profile_defaults
+from ..services.errors import ConfigurationError, ValidationError
+from ..services.provider_registry import ProviderAdapterRegistry
 
 
 class TestServiceContracts(unittest.TestCase):
