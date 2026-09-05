@@ -41,6 +41,10 @@ jobs:
       - name: Clean install addons
         run: >-
           docker run --rm --network host
+          -e HOST=127.0.0.1
+          -e PORT=5432
+          -e USER=odoo
+          -e PASSWORD=odoo
           -v "$PWD:/mnt/extra-addons"
           facodi-ai-ci
           odoo
@@ -56,6 +60,10 @@ jobs:
       - name: Upgrade addons
         run: >-
           docker run --rm --network host
+          -e HOST=127.0.0.1
+          -e PORT=5432
+          -e USER=odoo
+          -e PASSWORD=odoo
           -v "$PWD:/mnt/extra-addons"
           facodi-ai-ci
           odoo
