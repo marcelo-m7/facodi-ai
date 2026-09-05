@@ -80,30 +80,10 @@ class FacodiAIProfileResolver(models.AbstractModel):
                 f"No model is configured for AI provider '{provider.code}'."
             )
 
-        timeout = (
-            profile.timeout_override
-            if profile.timeout_override is not False and profile.timeout_override is not None
-            else defaults.get("timeout", 60)
-        )
-        max_tokens = (
-            profile.max_tokens_override
-            if profile.max_tokens_override is not False and profile.max_tokens_override is not None
-            else defaults.get("max_tokens", 8192)
-        )
-        retries = (
-            profile.retries_override
-            if profile.retries_override is not False and profile.retries_override is not None
-            else defaults.get("retries", 2)
-        )
         structured_output = (
             profile.structured_output_override == "enabled"
             if profile.structured_output_override != "default"
             else defaults.get("structured_output", True)
-        )
-        temperature = (
-            profile.temperature_override
-            if profile.temperature_overridden
-            else defaults.get("temperature")
         )
 
         return ResolvedAIProfile(
@@ -111,9 +91,13 @@ class FacodiAIProfileResolver(models.AbstractModel):
             provider_code=provider.code,
             connection_id=connection.id or None,
             model_name=model_name,
-            timeout=timeout,
-            max_tokens=max_tokens,
-            retries=retries,
+            timeout=profile.timeout_override or defaults.get("timeout", 60),
+            max_tokens=profile.max_tokens_override or defaults.get("max_tokens", 8192),
+            retries=profile.retries_override or defaults.get("retries", 2),
             structured_output=structured_output,
-            temperature=temperature,
+            temperature=(
+                profile.temperature_override
+                if profile.temperature_overridden
+                else defaults.get("temperature")
+            ),
         )
