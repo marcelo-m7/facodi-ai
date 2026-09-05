@@ -155,8 +155,16 @@ class TestAIService(TransactionCase):
         ]
         for error, expected in cases:
             RaisingAdapter.error = error
-            with self.assertRaises(expected):
+            try:
                 self._translate(profile)
+            except expected:
+                pass
+            except Exception as unexpected:
+                self.fail(
+                    f"Expected {expected.__name__}, got {type(unexpected).__name__}: {unexpected}"
+                )
+            else:
+                self.fail(f"Expected {expected.__name__} to be raised")
             request = self.env["facodi.ai.request"].search([], order="id desc", limit=1)
             self.assertEqual(request.state, "failed")
             self.assertEqual(request.error_code, expected.code)
