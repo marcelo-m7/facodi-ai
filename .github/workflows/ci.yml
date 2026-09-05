@@ -54,7 +54,8 @@ jobs:
           --db_password=odoo
           --database=facodi_ai_test
           --workers=0
-          --without-demo=all
+          --without-demo=True
+          --test-enable
           --stop-after-init
           --init=facodi_ai,facodi_ai_website
       - name: Upgrade addons
@@ -73,6 +74,7 @@ jobs:
           --db_password=odoo
           --database=facodi_ai_test
           --workers=0
-          --without-demo=all
+          --without-demo=True
+          --test-enable
           --stop-after-init
           --update=facodi_ai,facodi_ai_website
