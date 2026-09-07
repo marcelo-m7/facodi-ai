@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.facodi.ai.website</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="facodi_ai.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='facodi_ai']/block[@name='facodi_ai_connections']" position="after">
+                <block title="Website Translation" name="facodi_ai_website_translation">
+                    <setting string="Translation profile" help="FACODI AI profile used by the standard Website translation editor integration.">
+                        <field name="facodi_ai_website_translation_profile_id" options="{'no_open': True}"/>
+                    </setting>
+                    <setting string="Effective runtime" help="Resolved Website Translation runtime after profile, provider and connection defaults are applied.">
+                        <div class="content-group">
+                            <div class="row mt16">
+                                <label for="facodi_ai_website_translation_provider" class="col-lg-4 o_light_label" string="Provider"/>
+                                <field name="facodi_ai_website_translation_provider" class="oe_inline"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="facodi_ai_website_translation_model" class="col-lg-4 o_light_label" string="Model"/>
+                                <field name="facodi_ai_website_translation_model" class="oe_inline"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="facodi_ai_website_translation_connection" class="col-lg-4 o_light_label" string="Connection"/>
+                                <field name="facodi_ai_website_translation_connection" class="oe_inline" options="{'no_open': True}"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
