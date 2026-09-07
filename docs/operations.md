@@ -8,7 +8,9 @@ This guide covers production operation of `facodi_ai` and `facodi_ai_website` on
 
 Configure providers under **FACODI AI → Configuration → Connections**. Use a separate connection record when credentials, organization/project metadata, endpoint or operational ownership differs. When more than one active connection exists for a provider, explicitly choose the intended default connection.
 
-API keys are write-only. After saving a credential, the form exposes only whether a key is configured. If a connection uses the `GEMINI_API_KEY` or `OPENAI_API_KEY` environment fallback, remember that an Odoo-stored key takes precedence.
+API keys are write-only. After saving a credential, the form exposes only its effective source and whether a stored Odoo key exists. `GEMINI_API_KEY` and `OPENAI_API_KEY` take precedence over an Odoo-stored credential. When an environment value is active, change it in the deployment secret manager; the Odoo UI cannot read, edit or remove it. The **Remove Stored API Key** action only deletes the Odoo-stored value.
+
+For Coolify, declare `GEMINI_API_KEY` and `OPENAI_API_KEY` as blank environment entries in the service configuration and set values only through its secret management interface. An unset variable lets the runtime use the stored Odoo key; a non-empty variable overrides it.
 
 Use the connection test/status controls available in the FACODI AI UI before enabling a connection for a profile. A failed test should be resolved at the provider/credential layer before changing prompts or Website behavior.
 

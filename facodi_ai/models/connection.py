@@ -1,7 +1,7 @@
 import uuid
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 
 # Importing the service registers the private AbstractModel in Odoo's registry.
 from ..services import secret_store  # noqa: F401
@@ -38,6 +38,23 @@ class FacodiAIConnection(models.Model):
     )
     api_key_configured = fields.Boolean(
         string="API Key Configured",
+        compute="_compute_api_key_configured",
+    )
+    stored_api_key_configured = fields.Boolean(
+        string="Stored API Key Present",
+        compute="_compute_api_key_configured",
+    )
+    credential_source = fields.Selection(
+        [
+            ("environment", "Environment"),
+            ("odoo", "Odoo"),
+            ("none", "Not Configured"),
+        ],
+        string="Effective Credential Source",
+        compute="_compute_api_key_configured",
+    )
+    credential_env_name = fields.Char(
+        string="Environment Variable",
         compute="_compute_api_key_configured",
     )
 
@@ -78,7 +95,12 @@ class FacodiAIConnection(models.Model):
         for record, api_key in zip(records, pending_api_keys):
             if api_key:
                 secret_store_model._set_connection_api_key(record, api_key)
-                record.invalidate_recordset(["api_key_configured"])
+                record.invalidate_recordset([
+                    "api_key_configured",
+                    "stored_api_key_configured",
+                    "credential_source",
+                    "credential_env_name",
+                ])
             if record.active and record.is_default:
                 record._enforce_single_default()
         return records
@@ -114,15 +136,42 @@ class FacodiAIConnection(models.Model):
         for record in self:
             if record.api_key:
                 store._set_connection_api_key(record, record.api_key)
-                record.invalidate_recordset(["api_key_configured"])
+                record.invalidate_recordset([
+                    "api_key_configured",
+                    "stored_api_key_configured",
+                    "credential_source",
+                    "credential_env_name",
+                ])
 
-    @api.depends("credential_uuid")
+    @api.depends("credential_uuid", "provider_id", "provider_id.adapter_key")
     def _compute_api_key_configured(self):
         store = self.env["facodi.ai.secret.store"]
         for record in self:
-            record.api_key_configured = bool(
-                record.credential_uuid and store._has_connection_api_key(record)
+            resolution = (
+                store._resolve_connection_credential(record)
+                if record.credential_uuid
+                else None
             )
+            record.api_key_configured = bool(resolution and resolution.configured)
+            record.stored_api_key_configured = bool(
+                resolution and resolution.stored_credential_present
+            )
+            record.credential_source = resolution.source if resolution else "none"
+            record.credential_env_name = resolution.environment_name if resolution else False
+
+    def action_remove_stored_api_key(self):
+        if not self.env.user.has_group("facodi_ai.group_ai_admin"):
+            raise AccessError("Only FACODI AI administrators can remove credentials.")
+        store = self.env["facodi.ai.secret.store"]
+        for record in self:
+            store._delete_connection_api_key(record)
+        self.invalidate_recordset([
+            "api_key_configured",
+            "stored_api_key_configured",
+            "credential_source",
+            "credential_env_name",
+        ])
+        return True
 
     def _enforce_single_default(self):
         for record in self:

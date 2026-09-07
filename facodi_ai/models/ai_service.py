@@ -116,13 +116,20 @@ class FacodiAIService(models.AbstractModel):
                 "The resolved AI connection does not match the profile provider."
             )
 
-        api_key = self.env["facodi.ai.secret.store"]._get_connection_api_key(
+        credential = self.env["facodi.ai.secret.store"]._resolve_connection_credential(
             connection
         )
-        if not api_key:
-            raise ConfigurationError(
-                "The resolved AI connection has no API key configured."
+        if not credential.configured:
+            environment_hint = (
+                f" Configure {credential.environment_name} in the environment or"
+                if credential.environment_name
+                else " Configure a credential"
             )
+            raise ConfigurationError(
+                f"{connection.provider_id.name} provider is not configured."
+                f"{environment_hint} add a credential in FACODI AI settings."
+            )
+        api_key = credential.api_key
 
         provider = connection.provider_id
         adapter = build_provider_adapter(provider)
@@ -151,7 +158,7 @@ class FacodiAIService(models.AbstractModel):
             audit._failure(
                 request_record,
                 error_code=normalized.code,
-                message=str(error),
+                message=str(normalized),
             )
             raise normalized from error
 

@@ -10,6 +10,7 @@
                 <field name="provider_id"/>
                 <field name="is_default"/>
                 <field name="api_key_configured"/>
+                <field name="credential_source"/>
                 <field name="last_test_status"/>
                 <field name="active"/>
             </list>
@@ -31,8 +32,18 @@
                             <field name="sequence"/>
                         </group>
                         <group string="Credentials">
-                            <field name="api_key" password="True"/>
+                            <field name="api_key" password="True" placeholder="Enter a new stored API key"/>
                             <field name="api_key_configured" readonly="1"/>
+                            <field name="credential_source" readonly="1"/>
+                            <field name="credential_env_name" readonly="1" invisible="credential_source != 'environment'"/>
+                            <field name="stored_api_key_configured" readonly="1"/>
+                            <div class="text-muted" invisible="credential_source != 'environment'">
+                                The effective credential is read-only and comes from the server environment. Change the deployment secret to modify it.
+                            </div>
+                            <div class="text-muted" invisible="credential_source != 'environment' or not stored_api_key_configured">
+                                A stored Odoo credential is present but overridden by the environment.
+                            </div>
+                            <button name="action_remove_stored_api_key" type="object" string="Remove Stored API Key" class="btn-secondary" confirm="Remove the API key stored in Odoo? This does not change any environment variable." invisible="not stored_api_key_configured"/>
                             <field name="credential_uuid" readonly="1" groups="base.group_no_one"/>
                         </group>
                     </group>

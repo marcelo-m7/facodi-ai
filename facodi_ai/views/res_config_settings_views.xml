@@ -23,7 +23,7 @@
                                 Recommended model: <field name="recommended_openai_model" class="oe_inline" readonly="1"/>
                             </div>
                         </setting>
-                        <setting string="Gemini" help="Default active Gemini connection. Odoo-stored credentials take precedence over the GEMINI_API_KEY runtime fallback.">
+                        <setting string="Gemini" help="Default active Gemini connection. GEMINI_API_KEY overrides any Odoo-stored credential at runtime.">
                             <field name="facodi_ai_default_gemini_connection_id" domain="[('provider_id.code', '=', 'gemini'), ('active', '=', True)]" options="{'no_create': True}"/>
                             <div class="text-muted mt8">
                                 Recommended model: <field name="recommended_gemini_model" class="oe_inline" readonly="1"/>
