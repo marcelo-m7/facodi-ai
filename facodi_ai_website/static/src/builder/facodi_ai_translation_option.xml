@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="facodi_ai_website.TranslateWebpageOption"
+       t-inherit="website.TranslateWebpageOption"
+       t-inherit-mode="extension">
+        <xpath expr="//BuilderRow" position="replace">
+            <BuilderRow label.translate="Translate with FACODI AI">
+                <BuilderButton action="'facodiTranslateUntranslatedAI'"
+                               type="'success'"
+                               className="this.translationState.isTranslating ? 'disabled' : ''">
+                    <t t-if="this.translationState.isTranslating">
+                        <i class="fa fa-circle-o-notch fa-spin lh-1"/> Translating...
+                    </t>
+                    <t t-else="">Translate untranslated</t>
+                </BuilderButton>
+                <BuilderButton action="'facodiRetranslatePageAI'"
+                               className="this.translationState.isTranslating ? 'disabled' : ''">
+                    Retranslate page
+                </BuilderButton>
+                <BuilderButton action="'facodiTranslateSelectedAI'"
+                               className="this.translationState.isTranslating ? 'disabled' : ''">
+                    Translate selected
+                </BuilderButton>
+            </BuilderRow>
+        </xpath>
+    </t>
+</templates>

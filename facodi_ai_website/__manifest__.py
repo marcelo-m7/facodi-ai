@@ -11,7 +11,11 @@
         "views/res_config_settings_views.xml",
     ],
     "assets": {
+        "website.website_builder_assets": [
+            "facodi_ai_website/static/src/builder/**/*",
+        ],
         "web.assets_unit_tests": [
+            "facodi_ai_website/static/src/builder/facodi_ai_translation_plugin.js",
             "facodi_ai_website/static/tests/**/*",
         ],
     },
