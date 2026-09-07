@@ -2,7 +2,7 @@ FROM odoo:19.0
 
 USER root
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3-venv \
+    && apt-get install -y --no-install-recommends python3-venv chromium \
     && rm -rf /var/lib/apt/lists/*
 RUN python3 -m venv --system-site-packages /opt/facodi-ai-venv
 COPY requirements.txt /tmp/facodi-ai-requirements.txt
