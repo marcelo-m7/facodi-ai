@@ -3,53 +3,34 @@ from odoo.tests.common import TransactionCase
 
 
 class TestSecuritySettings(TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # On an addon upgrade, PostgreSQL can already contain the NOT NULL
+        # notification_type column contributed by mail while facodi_ai itself
+        # remains Website-independent.  Reloading the registry through Odoo is
+        # the correct upgrade boundary; tests must never bypass ORM constraints.
+        if "notification_type" not in cls.env["res.users"]._fields:
+            cls.env["ir.module.module"].update_list()
+            mail = cls.env["ir.module.module"].search([("name", "=", "mail")], limit=1)
+            if mail.state == "installed":
+                cls.env.registry = cls.env.registry.new(cls.env.cr.dbname, update_module=True)
+                cls.env.reset()
+
     def _group(self, name):
         group = self.env["res.groups"].search([("name", "=", name)], limit=1)
         self.assertTrue(group, f"Missing security group: {name}")
         return group
 
     def _user(self, login, groups):
-        Users = self.env["res.users"]
         values = {
             "name": login,
             "login": login,
             "group_ids": [(6, 0, groups.ids)],
         }
-        # A module upgrade can run while the current registry still exposes
-        # the pre-upgrade res.users model, even though the database already has
-        # NOT NULL columns added by modules loaded later in the registry.  The
-        # field can therefore be absent from _fields while its SQL constraint is
-        # already active.  Detect the physical column as well as the ORM field
-        # and provide the standard mail notification value when required.
-        has_notification_field = "notification_type" in Users._fields
-        self.env.cr.execute(
-            """
-            SELECT is_nullable
-              FROM information_schema.columns
-             WHERE table_schema = current_schema()
-               AND table_name = 'res_users'
-               AND column_name = 'notification_type'
-            """
-        )
-        notification_column = self.env.cr.fetchone()
-        notification_required = bool(notification_column and notification_column[0] == "NO")
-        if has_notification_field:
+        if "notification_type" in self.env["res.users"]._fields:
             values["notification_type"] = "email"
-            return Users.create(values)
-        if notification_required:
-            # The ORM cannot write a column it does not know yet.  Create the
-            # user with the current registry, then populate the already-existing
-            # SQL column in the same transaction before the insert is checked by
-            # using the model's SQL default through a local savepoint strategy.
-            # On supported Odoo 19 upgrade paths mail is loaded in the registry
-            # before this case, so reaching this branch indicates registry drift
-            # and should fail clearly instead of producing a misleading NOT NULL
-            # error.
-            self.fail(
-                "res_users.notification_type is NOT NULL in PostgreSQL but is absent "
-                "from the active Odoo registry during FACODI AI tests"
-            )
-        return Users.create(values)
+        return self.env["res.users"].create(values)
 
     def test_internal_user_cannot_read_connection_records(self):
         user = self._user("ai-consumer", self.env.ref("base.group_user"))
