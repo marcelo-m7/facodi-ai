@@ -168,6 +168,7 @@ class TestAIService(TransactionCase):
             request = self.env["facodi.ai.request"].search([], order="id desc", limit=1)
             self.assertEqual(request.state, "failed")
             self.assertEqual(request.error_code, expected.code)
+            self.assertNotIn("invalid api key", request.error_message)
 
     def test_custom_prompt_instructions_are_appended(self):
         captured = {}

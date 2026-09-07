@@ -25,7 +25,9 @@ Provider/model/profile values are resolved at runtime. Explicit profile and conn
 
 Administrators configure AI connections from the **FACODI AI** app or **Settings → FACODI AI**. Multiple connections per provider are supported, with deterministic default-connection resolution.
 
-API keys are write-only in the Odoo UI. They are stored in Odoo configuration parameters, keyed by an immutable connection credential UUID. `GEMINI_API_KEY` and `OPENAI_API_KEY` are supported as runtime fallbacks when the corresponding database credential is empty.
+API keys are write-only in the Odoo UI. UI-entered keys are stored in Odoo configuration parameters, keyed by an immutable connection credential UUID. At runtime, `GEMINI_API_KEY` and `OPENAI_API_KEY` take precedence over an Odoo-stored key for the corresponding provider. The connection form shows the effective source and whether a stored key is overridden, but never returns either secret.
+
+For production deployments, configure only the required provider variables as blank environment entries and set their values in the deployment secret manager. Do not copy runtime environment values into Odoo. Removing a stored key in the UI affects only Odoo storage and cannot modify deployment environment variables.
 
 **Backup warning:** database backups include `ir.config_parameter` values and therefore can contain configured AI API keys. Protect backups as secrets and rotate credentials if a backup is exposed.
 

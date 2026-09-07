@@ -105,7 +105,7 @@ class TestAIConnection(TransactionCase):
                 "env-gemini-secret",
             )
 
-    def test_database_key_takes_precedence_over_environment_key(self):
+    def test_environment_key_takes_precedence_over_database_key(self):
         connection = self.Connection.create(
             {"name": "Gemini Database", "provider_id": self.gemini.id}
         )
@@ -113,8 +113,68 @@ class TestAIConnection(TransactionCase):
         with patch.dict(os.environ, {"GEMINI_API_KEY": "env-gemini-secret"}, clear=False):
             self.assertEqual(
                 self.env["facodi.ai.secret.store"]._get_connection_api_key(connection),
-                "db-gemini-secret",
+                "env-gemini-secret",
             )
+
+    def test_credential_status_reports_environment_without_exposing_secret(self):
+        connection = self.Connection.create(
+            {"name": "OpenAI Runtime", "provider_id": self.openai.id}
+        )
+        connection.write({"api_key": "db-openai-secret"})
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "env-openai-secret"}, clear=False):
+            self.env.invalidate_all()
+            connection = self.Connection.browse(connection.id)
+            self.assertTrue(connection.api_key_configured)
+            self.assertTrue(connection.stored_api_key_configured)
+            self.assertEqual(connection.credential_source, "environment")
+            self.assertEqual(connection.credential_env_name, "OPENAI_API_KEY")
+            values = connection.read([
+                "api_key",
+                "api_key_configured",
+                "stored_api_key_configured",
+                "credential_source",
+                "credential_env_name",
+            ])[0]
+            self.assertNotIn("env-openai-secret", repr(values))
+            self.assertNotIn("db-openai-secret", repr(values))
+
+    def test_database_key_is_used_when_environment_is_absent(self):
+        connection = self.Connection.create(
+            {"name": "OpenAI Database", "provider_id": self.openai.id}
+        )
+        connection.write({"api_key": "db-openai-secret"})
+        with patch.dict(os.environ, {}, clear=True):
+            self.env.invalidate_all()
+            connection = self.Connection.browse(connection.id)
+            self.assertTrue(connection.api_key_configured)
+            self.assertEqual(connection.credential_source, "odoo")
+            self.assertFalse(connection.credential_env_name)
+
+    def test_removing_database_key_does_not_remove_environment_key(self):
+        connection = self.Connection.create(
+            {"name": "Gemini Runtime", "provider_id": self.gemini.id}
+        )
+        connection.write({"api_key": "db-gemini-secret"})
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "env-gemini-secret"}, clear=False):
+            connection.action_remove_stored_api_key()
+            self.env.invalidate_all()
+            connection = self.Connection.browse(connection.id)
+            self.assertTrue(connection.api_key_configured)
+            self.assertFalse(connection.stored_api_key_configured)
+            self.assertEqual(connection.credential_source, "environment")
+            self.assertEqual(os.environ["GEMINI_API_KEY"], "env-gemini-secret")
+
+    def test_no_credential_is_reported_as_unconfigured(self):
+        connection = self.Connection.create(
+            {"name": "Unconfigured OpenAI", "provider_id": self.openai.id}
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            self.env.invalidate_all()
+            connection = self.Connection.browse(connection.id)
+            self.assertFalse(connection.api_key_configured)
+            self.assertFalse(connection.stored_api_key_configured)
+            self.assertEqual(connection.credential_source, "none")
+            self.assertEqual(connection.credential_env_name, "OPENAI_API_KEY")
 
     def test_openai_environment_key_is_supported_symmetrically(self):
         connection = self.Connection.create(
