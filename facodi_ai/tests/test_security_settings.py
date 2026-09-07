@@ -3,34 +3,50 @@ from odoo.tests.common import TransactionCase
 
 
 class TestSecuritySettings(TransactionCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        # On an addon upgrade, PostgreSQL can already contain the NOT NULL
-        # notification_type column contributed by mail while facodi_ai itself
-        # remains Website-independent.  Reloading the registry through Odoo is
-        # the correct upgrade boundary; tests must never bypass ORM constraints.
-        if "notification_type" not in cls.env["res.users"]._fields:
-            cls.env["ir.module.module"].update_list()
-            mail = cls.env["ir.module.module"].search([("name", "=", "mail")], limit=1)
-            if mail.state == "installed":
-                cls.env.registry = cls.env.registry.new(cls.env.cr.dbname, update_module=True)
-                cls.env.reset()
-
     def _group(self, name):
         group = self.env["res.groups"].search([("name", "=", name)], limit=1)
         self.assertTrue(group, f"Missing security group: {name}")
         return group
 
     def _user(self, login, groups):
+        Users = self.env["res.users"]
         values = {
             "name": login,
             "login": login,
             "group_ids": [(6, 0, groups.ids)],
         }
-        if "notification_type" in self.env["res.users"]._fields:
+        if "notification_type" in Users._fields:
             values["notification_type"] = "email"
-        return self.env["res.users"].create(values)
+            return Users.create(values)
+
+        # During `-u facodi_ai` Odoo can execute this module's tests before the
+        # already-installed `mail` addon has extended the active registry.  The
+        # PostgreSQL table nevertheless keeps mail's NOT NULL column from the
+        # previous registry.  Temporarily give that physical column a default so
+        # the base `res.users` ORM can create the fixture, then remove the default
+        # immediately.  This changes no production data and mirrors the value mail
+        # itself uses once its model extension is active.
+        self.env.cr.execute(
+            """
+            SELECT is_nullable
+              FROM information_schema.columns
+             WHERE table_schema = current_schema()
+               AND table_name = 'res_users'
+               AND column_name = 'notification_type'
+            """
+        )
+        column = self.env.cr.fetchone()
+        if column and column[0] == "NO":
+            self.env.cr.execute(
+                "ALTER TABLE res_users ALTER COLUMN notification_type SET DEFAULT 'email'"
+            )
+            try:
+                return Users.create(values)
+            finally:
+                self.env.cr.execute(
+                    "ALTER TABLE res_users ALTER COLUMN notification_type DROP DEFAULT"
+                )
+        return Users.create(values)
 
     def test_internal_user_cannot_read_connection_records(self):
         user = self._user("ai-consumer", self.env.ref("base.group_user"))
