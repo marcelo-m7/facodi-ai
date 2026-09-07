@@ -10,6 +10,11 @@
         "data/profile_data.xml",
         "views/res_config_settings_views.xml",
     ],
+    "assets": {
+        "web.assets_unit_tests": [
+            "facodi_ai_website/static/tests/**/*",
+        ],
+    },
     "application": False,
     "installable": True,
     "license": "LGPL-3",
