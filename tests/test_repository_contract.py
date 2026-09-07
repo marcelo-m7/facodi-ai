@@ -75,6 +75,8 @@ class RepositoryContractTest(unittest.TestCase):
             self.assertIn(action_id, option)
         self.assertIn('category("website-translation-plugins")', plugin)
         self.assertIn('"/facodi_ai/website/translate"', plugin)
+        self.assertNotIn('"valueHistory"', plugin)
+        self.assertIn("element.value = value", plugin)
         self.assertNotIn("/html_editor/generate_text", plugin)
         self.assertNotIn("/website/field/translation/update", plugin)
 

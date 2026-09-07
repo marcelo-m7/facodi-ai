@@ -15,7 +15,6 @@ const ACTION_DEPENDENCIES = [
     "customizeTranslationTab",
     "translation",
     "history",
-    "valueHistory",
     "selection",
 ];
 
@@ -225,16 +224,21 @@ function applyTextTarget(target, translatedText) {
 function applyAttributeTarget(action, target, translatedText) {
     const { element, attribute, attributeInfo } = target;
     const oldValue = attributeInfo.translation;
+    const oldTranslationState = element.dataset.oeTranslationState;
+    const applyAttributeChange = (value) => {
+        attributeInfo.translation = value;
+        element.dataset.oeTranslationState =
+            value === oldValue ? oldTranslationState : "translated";
+        if (attribute === "textContent" || attribute === "value") {
+            element.value = value;
+        } else {
+            element.setAttribute(attribute, value);
+        }
+    };
     action.dependencies.history.applyCustomMutation({
-        apply: () => (attributeInfo.translation = translatedText),
-        revert: () => (attributeInfo.translation = oldValue),
+        apply: () => applyAttributeChange(translatedText),
+        revert: () => applyAttributeChange(oldValue),
     });
-    element.dataset.oeTranslationState = "translated";
-    if (attribute === "textContent" || attribute === "value") {
-        action.dependencies.valueHistory.setValue(element, translatedText);
-    } else {
-        element.setAttribute(attribute, translatedText);
-    }
 }
 
 function applyTranslations(action, entries, translatedById) {

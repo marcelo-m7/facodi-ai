@@ -44,6 +44,7 @@ test("FACODI Website translation plugin registers unique actions", () => {
     expect(TranslateUntranslatedAction.id).toBe("facodiTranslateUntranslatedAI");
     expect(RetranslatePageAction.id).toBe("facodiRetranslatePageAI");
     expect(TranslateSelectedAction.id).toBe("facodiTranslateSelectedAI");
+    expect(TranslateUntranslatedAction.dependencies).not.toContain("valueHistory");
     expect(
         registry.category("website-translation-plugins").get("facodiAiWebsiteTranslation")
     ).toBe(FacodiAiWebsiteTranslationPlugin);
