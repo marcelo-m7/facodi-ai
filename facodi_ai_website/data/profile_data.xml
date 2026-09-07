@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="prompt_website_translation" model="facodi.ai.prompt">
+        <field name="name">Website Translation</field>
+        <field name="code">website_translation</field>
+        <field name="capability">translation</field>
+        <field name="active">True</field>
+        <field name="version">1</field>
+    </record>
+
+    <record id="profile_website_translation" model="facodi.ai.profile">
+        <field name="name">Website Translation</field>
+        <field name="code">website_translation</field>
+        <field name="capability">translation</field>
+        <field name="active">True</field>
+        <field name="prompt_id" ref="prompt_website_translation"/>
+    </record>
+</odoo>
