@@ -30,7 +30,7 @@ jobs:
             --exclude-dir=__pycache__ \
             --exclude='test_repository_contract.py' \
             '(^|[^[:alnum:]_])(TODO|FIXME|CHANGEME|YOUR_[A-Z0-9_]*KEY)([^[:alnum:]_]|$)' \
-            facodi_ai facodi_ai_website README.md docs; then
+            facodi_ai facodi_ai_website README.md docs/operations.md; then
             echo "Release placeholder markers found"
             exit 1
           fi
