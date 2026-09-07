@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem
+        id="menu_facodi_ai_root"
+        name="FACODI AI"
+        sequence="75"
+        groups="facodi_ai.group_ai_manager"/>
+
+    <menuitem
+        id="menu_facodi_ai_dashboard"
+        name="Dashboard"
+        parent="menu_facodi_ai_root"
+        action="action_facodi_ai_dashboard"
+        sequence="10"
+        groups="facodi_ai.group_ai_manager"/>
+
+    <menuitem
+        id="menu_facodi_ai_requests"
+        name="Requests / Usage"
+        parent="menu_facodi_ai_root"
+        action="action_facodi_ai_request"
+        sequence="20"
+        groups="facodi_ai.group_ai_manager"/>
+
+    <menuitem
+        id="menu_facodi_ai_configuration"
+        name="Configuration"
+        parent="menu_facodi_ai_root"
+        sequence="80"
+        groups="facodi_ai.group_ai_admin"/>
+
+    <menuitem
+        id="menu_facodi_ai_connections"
+        name="Connections"
+        parent="menu_facodi_ai_configuration"
+        action="action_facodi_ai_connection"
+        sequence="10"
+        groups="facodi_ai.group_ai_admin"/>
+
+    <menuitem
+        id="menu_facodi_ai_providers"
+        name="Providers"
+        parent="menu_facodi_ai_configuration"
+        action="action_facodi_ai_provider"
+        sequence="20"
+        groups="facodi_ai.group_ai_admin"/>
+
+    <menuitem
+        id="menu_facodi_ai_profiles"
+        name="Profiles"
+        parent="menu_facodi_ai_configuration"
+        action="action_facodi_ai_profile"
+        sequence="30"
+        groups="facodi_ai.group_ai_admin"/>
+
+    <menuitem
+        id="menu_facodi_ai_prompts"
+        name="Prompts"
+        parent="menu_facodi_ai_configuration"
+        action="action_facodi_ai_prompt"
+        sequence="40"
+        groups="facodi_ai.group_ai_admin"/>
+</odoo>

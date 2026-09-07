@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_facodi_ai_profile_list" model="ir.ui.view">
+        <field name="name">facodi.ai.profile.list</field>
+        <field name="model">facodi.ai.profile</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="capability"/>
+                <field name="provider_id"/>
+                <field name="connection_id"/>
+                <field name="model_override"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_facodi_ai_profile_form" model="ir.ui.view">
+        <field name="name">facodi.ai.profile.form</field>
+        <field name="model">facodi.ai.profile</field>
+        <field name="arch" type="xml">
+            <form string="AI Profile">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="capability"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="provider_id"/>
+                            <field name="connection_id" domain="[('provider_id', '=', provider_id)]"/>
+                            <field name="prompt_id"/>
+                            <field name="fallback_profile_id" domain="[('id', '!=', id)]"/>
+                        </group>
+                    </group>
+                    <group string="Overrides">
+                        <group>
+                            <field name="model_override"/>
+                            <field name="structured_output_override"/>
+                            <field name="temperature_overridden"/>
+                            <field name="temperature_override" invisible="not temperature_overridden"/>
+                        </group>
+                        <group>
+                            <field name="timeout_override"/>
+                            <field name="max_tokens_override"/>
+                            <field name="retries_override"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facodi_ai_profile" model="ir.actions.act_window">
+        <field name="name">Profiles</field>
+        <field name="res_model">facodi.ai.profile</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

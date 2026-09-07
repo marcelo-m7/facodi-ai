@@ -1,4 +1,12 @@
+import os
+
 from odoo import api, models
+
+
+_PROVIDER_ENV_KEYS = {
+    "gemini": "GEMINI_API_KEY",
+    "openai": "OPENAI_API_KEY",
+}
 
 
 class FacodiAISecretStore(models.AbstractModel):
@@ -20,10 +28,18 @@ class FacodiAISecretStore(models.AbstractModel):
 
     @api.model
     def _get_connection_api_key(self, connection):
-        return self.env["ir.config_parameter"].sudo().get_param(
+        database_key = self.env["ir.config_parameter"].sudo().get_param(
             self._parameter_key(connection),
             False,
         )
+        if database_key:
+            return database_key
+
+        provider_code = connection.provider_id.code if connection.provider_id else False
+        environment_name = _PROVIDER_ENV_KEYS.get(provider_code)
+        if not environment_name:
+            return False
+        return os.environ.get(environment_name) or False
 
     @api.model
     def _has_connection_api_key(self, connection):

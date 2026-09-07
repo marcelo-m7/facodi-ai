@@ -1,3 +1,6 @@
+import os
+from unittest.mock import patch
+
 from psycopg2 import IntegrityError
 
 from odoo.exceptions import ValidationError
@@ -11,6 +14,7 @@ class TestAIConnection(TransactionCase):
         self.Provider = self.env["facodi.ai.provider"]
         self.Connection = self.env["facodi.ai.connection"]
         self.openai = self.env.ref("facodi_ai.provider_openai")
+        self.gemini = self.env.ref("facodi_ai.provider_gemini")
 
     def test_multiple_connections_per_provider(self):
         first = self.Connection.create(
@@ -90,3 +94,57 @@ class TestAIConnection(TransactionCase):
         self.assertFalse(
             self.env["ir.config_parameter"].sudo().get_param(parameter_key)
         )
+
+    def test_gemini_environment_key_is_fallback_when_database_key_is_empty(self):
+        connection = self.Connection.create(
+            {"name": "Gemini Environment", "provider_id": self.gemini.id}
+        )
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "env-gemini-secret"}, clear=False):
+            self.assertEqual(
+                self.env["facodi.ai.secret.store"]._get_connection_api_key(connection),
+                "env-gemini-secret",
+            )
+
+    def test_database_key_takes_precedence_over_environment_key(self):
+        connection = self.Connection.create(
+            {"name": "Gemini Database", "provider_id": self.gemini.id}
+        )
+        connection.write({"api_key": "db-gemini-secret"})
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "env-gemini-secret"}, clear=False):
+            self.assertEqual(
+                self.env["facodi.ai.secret.store"]._get_connection_api_key(connection),
+                "db-gemini-secret",
+            )
+
+    def test_openai_environment_key_is_supported_symmetrically(self):
+        connection = self.Connection.create(
+            {"name": "OpenAI Environment", "provider_id": self.openai.id}
+        )
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "env-openai-secret"}, clear=False):
+            self.assertEqual(
+                self.env["facodi.ai.secret.store"]._get_connection_api_key(connection),
+                "env-openai-secret",
+            )
+
+    def test_unknown_provider_does_not_read_generic_environment_secrets(self):
+        provider = self.Provider.create(
+            {
+                "name": "Custom Provider",
+                "code": "custom_provider",
+                "adapter_key": "custom_provider",
+            }
+        )
+        connection = self.Connection.create(
+            {"name": "Custom", "provider_id": provider.id}
+        )
+        with patch.dict(
+            os.environ,
+            {
+                "GEMINI_API_KEY": "env-gemini-secret",
+                "OPENAI_API_KEY": "env-openai-secret",
+            },
+            clear=False,
+        ):
+            self.assertFalse(
+                self.env["facodi.ai.secret.store"]._get_connection_api_key(connection)
+            )

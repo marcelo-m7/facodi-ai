@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_facodi_ai_provider_admin,FACODI AI provider administrator,model_facodi_ai_provider,facodi_ai.group_ai_admin,1,1,1,1
+access_facodi_ai_connection_admin,FACODI AI connection administrator,model_facodi_ai_connection,facodi_ai.group_ai_admin,1,1,1,1
+access_facodi_ai_profile_admin,FACODI AI profile administrator,model_facodi_ai_profile,facodi_ai.group_ai_admin,1,1,1,1
+access_facodi_ai_prompt_admin,FACODI AI prompt administrator,model_facodi_ai_prompt,facodi_ai.group_ai_admin,1,1,1,1
+access_facodi_ai_request_manager,FACODI AI request manager,model_facodi_ai_request,facodi_ai.group_ai_manager,1,0,0,0
+access_facodi_ai_request_admin,FACODI AI request administrator,model_facodi_ai_request,facodi_ai.group_ai_admin,1,1,1,1
