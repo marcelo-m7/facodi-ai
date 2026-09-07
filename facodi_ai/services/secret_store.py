@@ -45,7 +45,12 @@ class FacodiAISecretStore(models.AbstractModel):
     @api.model
     def _resolve_connection_credential(self, connection):
         provider = connection.provider_id
-        metadata = provider_registry.metadata(provider.adapter_key) if provider else {}
+        adapter_key = provider.adapter_key if provider else False
+        metadata = (
+            provider_registry.metadata(adapter_key)
+            if adapter_key in provider_registry.keys()
+            else {}
+        )
         environment_name = metadata.get("credential_env")
         environment_key = os.environ.get(environment_name) if environment_name else False
         stored_key = self._get_stored_connection_api_key(connection)
