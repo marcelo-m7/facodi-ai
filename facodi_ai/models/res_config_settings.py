@@ -94,9 +94,7 @@ class ResConfigSettings(models.TransientModel):
                 raise ValidationError(
                     "The selected AI connection belongs to a different provider."
                 )
-        (peers - connection).with_context(
-            facodi_ai_skip_default_enforcement=True
-        ).write({"is_default": False})
+        (peers - connection)._write_default_peers({"is_default": False})
         if connection and not connection.is_default:
             connection.write({"is_default": True})
 

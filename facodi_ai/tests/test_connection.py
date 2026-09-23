@@ -58,6 +58,26 @@ class TestAIConnection(TransactionCase):
         self.assertFalse(first.is_default)
         self.assertTrue(second.is_default)
 
+    def test_context_cannot_bypass_single_default_enforcement(self):
+        first = self.Connection.create(
+            {
+                "name": "Primary",
+                "provider_id": self.openai.id,
+                "is_default": True,
+            }
+        )
+        second = self.Connection.create(
+            {"name": "Secondary", "provider_id": self.openai.id}
+        )
+
+        second.with_context(facodi_ai_skip_default_enforcement=True).write(
+            {"is_default": True}
+        )
+
+        self.env.invalidate_all()
+        self.assertFalse(first.is_default)
+        self.assertTrue(second.is_default)
+
     def test_api_key_is_write_only_and_stored_in_config_parameter(self):
         connection = self.Connection.create(
             {"name": "Secret Test", "provider_id": self.openai.id}

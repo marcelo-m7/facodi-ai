@@ -112,14 +112,14 @@ class FacodiAIConnection(models.Model):
                 raise ValidationError("The credential identifier cannot be changed.")
 
         result = super().write(vals)
-        if (
-            not self.env.context.get("facodi_ai_skip_default_enforcement")
-            and {"provider_id", "active", "is_default"}.intersection(vals)
-        ):
+        if {"provider_id", "active", "is_default"}.intersection(vals):
             for record in self:
                 if record.active and record.is_default:
                     record._enforce_single_default()
         return result
+
+    def _write_default_peers(self, vals):
+        return super().write(vals)
 
     def unlink(self):
         store = self.env["facodi.ai.secret.store"]
@@ -186,6 +186,4 @@ class FacodiAIConnection(models.Model):
                 ]
             )
             if peers:
-                peers.with_context(facodi_ai_skip_default_enforcement=True).write(
-                    {"is_default": False}
-                )
+                peers._write_default_peers({"is_default": False})
