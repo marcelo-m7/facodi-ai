@@ -14,6 +14,9 @@
                         <setting string="Default Provider" help="Fallback provider for AI profiles that do not define their own provider.">
                             <field name="facodi_ai_default_provider_code"/>
                         </setting>
+                        <setting string="Learning Analysis Profile" help="Profile used for audited, structured learning mapping suggestions. Suggestions always require eLearning Manager review.">
+                            <field name="facodi_ai_learning_profile_id" options="{'no_create': True}"/>
+                        </setting>
                     </block>
 
                     <block title="Connections" name="facodi_ai_connections">

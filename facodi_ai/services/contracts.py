@@ -1,4 +1,5 @@
 from collections import Counter
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -19,6 +20,29 @@ class TranslationUnitResult(BaseModel):
 
 class TranslationResult(BaseModel):
     units: list[TranslationUnitResult]
+
+
+class LearningMappingCandidate(BaseModel):
+    target_kind: Literal["unit", "channel", "slide"]
+    target_id: int
+    relation_type: Literal[
+        "covers",
+        "partial",
+        "supports",
+        "equivalent",
+        "related",
+        "alternative",
+        "continuation",
+        "complements",
+        "prerequisite",
+        "recommended",
+    ]
+    confidence: float = Field(ge=0, le=1)
+    rationale: str = Field(min_length=1)
+
+
+class LearningAnalysisResult(BaseModel):
+    candidates: list[LearningMappingCandidate] = Field(default_factory=list)
 
 
 def validate_translation_result(request_units, result):

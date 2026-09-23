@@ -27,6 +27,13 @@ class ResConfigSettings(models.TransientModel):
         default=False,
         help="Store request and response payloads for debugging. Keep disabled unless needed because payloads may contain Website content.",
     )
+    facodi_ai_learning_profile_id = fields.Many2one(
+        "facodi.ai.profile",
+        string="Learning Analysis Profile",
+        config_parameter="facodi_ai.learning_profile_id",
+        domain="[('active', '=', True), ('capability', 'in', ('classification', 'extraction', 'generation'))]",
+        groups="base.group_system",
+    )
 
     facodi_ai_default_openai_connection_id = fields.Many2one(
         "facodi.ai.connection",
