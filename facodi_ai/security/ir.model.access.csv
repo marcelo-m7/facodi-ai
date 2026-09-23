@@ -5,3 +5,6 @@ access_facodi_ai_profile_admin,FACODI AI profile administrator,model_facodi_ai_p
 access_facodi_ai_prompt_admin,FACODI AI prompt administrator,model_facodi_ai_prompt,facodi_ai.group_ai_admin,1,1,1,1
 access_facodi_ai_request_manager,FACODI AI request manager,model_facodi_ai_request,facodi_ai.group_ai_manager,1,0,0,0
 access_facodi_ai_request_admin,FACODI AI request administrator,model_facodi_ai_request,facodi_ai.group_ai_admin,1,1,1,1
+access_facodi_ai_learning_job_manager,FACODI AI learning job manager,model_facodi_ai_learning_job,website_slides.group_website_slides_manager,1,1,1,0
+access_facodi_ai_learning_analysis_manager,FACODI AI learning analysis manager,model_facodi_ai_learning_analysis,website_slides.group_website_slides_manager,1,0,0,0
+access_facodi_ai_learning_suggestion_manager,FACODI AI learning suggestion manager,model_facodi_ai_learning_suggestion,website_slides.group_website_slides_manager,1,1,1,0
