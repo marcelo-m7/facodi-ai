@@ -76,6 +76,67 @@ class TestLearningBridge(TransactionCase):
         self.assertEqual(first, second)
         self.assertEqual(first.state, "pending")
 
+    def test_course_prompt_contains_only_explicit_existing_target_ids(self):
+        job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
+        prompt = job._provider_prompt(job._source_payload())
+        payload = __import__("json").loads(prompt)
+
+        unit_ids = {
+            row["id"] for row in payload["candidate_targets"]["unit"]
+        }
+        self.assertIn(self.unit.id, unit_ids)
+        self.assertIn("unit", payload["allowed_targets"])
+        self.assertEqual(payload["candidate_targets"]["slide"], [])
+
+    def test_provider_candidate_outside_grounded_catalogue_is_ignored(self):
+        private_reference = self.env["facodi.learning.curriculum.reference"].create({
+            "institution": "Hidden Institution",
+            "programme_name": "Hidden Programme",
+            "academic_year": "2026/27",
+            "provider": "test",
+            "external_id": "ai-learning-hidden-reference",
+            "website_published": False,
+        })
+        hidden_unit = self.env["facodi.learning.curriculum.unit"].create({
+            "reference_id": private_reference.id,
+            "external_unit_code": "HIDDEN-101",
+            "name": "Hidden Unit",
+            "curricular_year": 1,
+            "classification": "mandatory",
+        })
+        job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
+        output = LearningAnalysisResult.model_validate(
+            {
+                "candidates": [
+                    {
+                        "target_kind": "unit",
+                        "target_id": hidden_unit.id,
+                        "relation_type": "supports",
+                        "confidence": 0.9,
+                        "rationale": "Provider returned an existing but non-candidate target.",
+                    }
+                ]
+            }
+        )
+
+        analysis = self.env["facodi.ai.learning.analysis"].create(
+            {
+                "job_id": job.id,
+                "source_channel_id": self.course.id,
+                "source_hash": job.source_hash,
+                "provider_code": "openai",
+                "model_name": "test-model",
+                "prompt_version": "1",
+                "structured_result": output.model_dump(mode="json"),
+            }
+        )
+        job._create_suggestions(analysis, output)
+        self.assertFalse(
+            self.env["facodi.ai.learning.suggestion"].search(
+                [("analysis_id", "=", analysis.id)]
+            )
+        )
+
     def test_provider_job_creates_auditable_reviewable_suggestion(self):
         job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
         output = LearningAnalysisResult.model_validate(
