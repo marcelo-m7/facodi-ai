@@ -53,6 +53,12 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout facodi-learning dependency
+        uses: actions/checkout@v4
+        with:
+          repository: marcelo-m7/facodi-learning
+          ref: 38ba9b0c7fe4964f9bcd73978b9adf5407dc3425
+          path: .ci/facodi-learning
       - name: Build Odoo CI image
         run: docker build -f docker/Dockerfile.ci -t facodi-ai-ci .
       - name: Core-only install
@@ -71,6 +77,7 @@ jobs:
             --db_port=5432 \
             --db_user=odoo \
             --db_password=odoo \
+            --addons-path=/mnt/extra-addons,/mnt/extra-addons/.ci/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
             --database=facodi_ai_test \
             --workers=0 \
             --without-demo=True \
@@ -102,6 +109,7 @@ jobs:
             --db_port=5432 \
             --db_user=odoo \
             --db_password=odoo \
+            --addons-path=/mnt/extra-addons,/mnt/extra-addons/.ci/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
             --database=facodi_ai_test \
             --workers=0 \
             --without-demo=True \
@@ -133,6 +141,7 @@ jobs:
             --db_port=5432 \
             --db_user=odoo \
             --db_password=odoo \
+            --addons-path=/mnt/extra-addons,/mnt/extra-addons/.ci/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
             --database=facodi_ai_test \
             --workers=0 \
             --without-demo=True \
