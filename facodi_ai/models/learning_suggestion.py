@@ -159,7 +159,6 @@ class FacodiAILearningJob(models.Model):
             [
                 ("id", "!=", self.source_slide_id.id),
                 ("channel_id", "=", self.source_slide_id.channel_id.id),
-                ("website_published", "=", True),
             ],
             order="sequence, id",
             limit=60,
