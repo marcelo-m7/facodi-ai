@@ -1,7 +1,7 @@
 {
     "name": "FACODI AI",
     "summary": "Reusable AI services for FACODI and Odoo Community",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "category": "Productivity",
     "author": "FACODI",
     "depends": ["base", "base_setup", "web", "facodi_learning"],
