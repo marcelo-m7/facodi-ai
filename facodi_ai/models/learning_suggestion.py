@@ -106,12 +106,95 @@ class FacodiAILearningJob(models.Model):
         )
         return f"{instructions}\n\nAdministrator instructions:\n{custom.strip()}" if custom else instructions
 
+    def _mapping_targets(self):
+        """Return a bounded, explicit target catalogue for structured AI mapping.
+
+        AI providers must never invent Odoo record IDs. The prompt therefore
+        carries only existing, reviewable public targets that the current source
+        is allowed to map to.
+        """
+        self.ensure_one()
+        if self.source_channel_id:
+            references = self.env["facodi.learning.curriculum.reference"].search(
+                [
+                    ("website_published", "=", True),
+                    ("validated_at", "!=", False),
+                ],
+                order="id",
+                limit=10,
+            )
+            units = self.env["facodi.learning.curriculum.unit"].search(
+                [("reference_id", "in", references.ids)],
+                order="reference_id, sequence, id",
+                limit=120,
+            )
+            channels = self.env["slide.channel"].search(
+                [
+                    ("id", "!=", self.source_channel_id.id),
+                    ("website_published", "=", True),
+                    ("visibility", "=", "public"),
+                ],
+                order="sequence, id",
+                limit=50,
+            )
+            return {
+                "unit": [
+                    {
+                        "id": unit.id,
+                        "code": unit.external_unit_code,
+                        "name": unit.name,
+                        "programme": unit.reference_id.programme_name,
+                        "academic_year": unit.reference_id.academic_year,
+                    }
+                    for unit in units
+                ],
+                "channel": [
+                    {"id": channel.id, "name": channel.name}
+                    for channel in channels
+                ],
+                "slide": [],
+            }
+
+        slides = self.env["slide.slide"].search(
+            [
+                ("id", "!=", self.source_slide_id.id),
+                ("channel_id", "=", self.source_slide_id.channel_id.id),
+                ("website_published", "=", True),
+            ],
+            order="sequence, id",
+            limit=60,
+        )
+        return {
+            "unit": [],
+            "channel": [],
+            "slide": [
+                {
+                    "id": slide.id,
+                    "name": slide.name,
+                    "channel_id": slide.channel_id.id,
+                }
+                for slide in slides
+            ],
+        }
+
     def _provider_prompt(self, source_payload):
+        targets = self._mapping_targets()
+        allowed_targets = [
+            target_kind
+            for target_kind, rows in targets.items()
+            if rows
+        ]
         return json.dumps(
             {
                 "source": source_payload,
-                "allowed_targets": ["unit", "channel", "slide"],
-                "instruction": "Return zero or more reviewable mapping candidates.",
+                "allowed_targets": allowed_targets,
+                "candidate_targets": targets,
+                "instruction": (
+                    "Return zero or more reviewable mapping candidates. "
+                    "Use only target IDs present in candidate_targets. "
+                    "Prefer supports/partial over stronger academic relations "
+                    "unless the supplied evidence clearly justifies otherwise."
+                ),
             },
             ensure_ascii=False,
             sort_keys=True,
