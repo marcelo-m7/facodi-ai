@@ -213,7 +213,14 @@ class FacodiAILearningJob(models.Model):
             "channel": "slide.channel",
             "slide": "slide.slide",
         }
+        allowed_targets = self._mapping_targets()
+        allowed_target_ids = {
+            kind: {row["id"] for row in rows}
+            for kind, rows in allowed_targets.items()
+        }
         for candidate in result.candidates:
+            if candidate.target_id not in allowed_target_ids.get(candidate.target_kind, set()):
+                continue
             if self.source_channel_id:
                 if candidate.target_kind == "unit":
                     allowed_relations = {"covers", "partial", "supports", "equivalent"}
