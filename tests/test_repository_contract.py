@@ -132,7 +132,7 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("module = 'facodi_ai_learning'", migration)
         self.assertIn("module = 'facodi_ai'", migration)
         self.assertIn("ir_cron_facodi_ai_learning_jobs", migration)
-        self.assertIn("model_facodi_ai_learning_job", migration)
+        self.assertIn("name LIKE \'%facodi_ai_learning%\'", migration)
 
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
             encoding="utf-8"
