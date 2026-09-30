@@ -323,6 +323,9 @@ class FacodiAILearningJob(models.Model):
         except Exception as error:
             retries = self.retry_count + 1
             delay_seconds = min(2 ** (retries - 1), 60)
+            safe_error = self.env["facodi.ai.audit"]._sanitize_error(error)
+            if not safe_error:
+                safe_error = type(error).__name__
             self.write(
                 {
                     "state": "failed" if retries >= self.max_retries else "pending",
@@ -330,7 +333,7 @@ class FacodiAILearningJob(models.Model):
                     "next_retry_at": fields.Datetime.add(now, seconds=delay_seconds)
                     if retries < self.max_retries
                     else False,
-                    "error_message": str(error),
+                    "error_message": safe_error,
                     "finished_at": fields.Datetime.now(),
                 }
             )
