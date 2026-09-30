@@ -1,5 +1,7 @@
 from hashlib import sha256
+from unittest.mock import patch
 
+from odoo.exceptions import AccessError
 from odoo.tests.common import TransactionCase, tagged
 
 from odoo.addons.facodi_ai.services.errors import ValidationError
@@ -74,6 +76,34 @@ class TestWebsiteSourceResolution(TransactionCase):
         }
         with self.assertRaises(ValidationError):
             self.resolver.resolve_unit(unit, self.website)
+
+    def test_access_denial_is_normalized_for_the_translation_service(self):
+        unit = {
+            "id": "u1",
+            "model": "ir.ui.view",
+            "record_id": self.view.id,
+            "field": "arch_db",
+            "source_sha": self._sha_for("Hello world"),
+        }
+        with patch.object(type(self.view), "check_access", side_effect=AccessError("denied")):
+            with self.assertRaisesRegex(ValidationError, "not readable"):
+                self.resolver.resolve_unit(unit, self.website)
+
+    def test_unexpected_access_check_error_is_not_hidden(self):
+        unit = {
+            "id": "u1",
+            "model": "ir.ui.view",
+            "record_id": self.view.id,
+            "field": "arch_db",
+            "source_sha": self._sha_for("Hello world"),
+        }
+        with patch.object(
+            type(self.view),
+            "check_access",
+            side_effect=RuntimeError("unexpected access failure"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unexpected access failure"):
+                self.resolver.resolve_unit(unit, self.website)
 
     def test_rejects_non_translatable_field(self):
         unit = {
