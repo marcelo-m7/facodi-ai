@@ -112,7 +112,7 @@ class RepositoryContractTest(unittest.TestCase):
         workflow = (
             ROOT / ".github" / "workflows" / "ci.yml"
         ).read_text(encoding="utf-8")
-        expected = "0a5f78b35d5d70ad589eb75b15c55077baab064c"
+        expected = "4c1a2886d91280247765ec778c4cd2d5c6b37ff8"
         self.assertIn("repository: marcelo-m7/facodi-learning", workflow)
         self.assertIn(f"ref: {expected}", workflow)
         self.assertNotIn(
