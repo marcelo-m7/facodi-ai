@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_facodi_ai_learning_suggestion_list" model="ir.ui.view">
+        <field name="name">facodi.ai.learning.suggestion.list</field>
+        <field name="model">facodi.ai.learning.suggestion</field>
+        <field name="arch" type="xml">
+            <list default_order="confidence desc">
+                <field name="state"/><field name="confidence"/><field name="relation_type"/>
+                <field name="source_channel_id" optional="show"/><field name="source_slide_id" optional="show"/>
+                <field name="target_unit_id" optional="show"/><field name="target_channel_id" optional="show"/><field name="target_slide_id" optional="show"/>
+                <field name="reviewer_id" optional="hide"/><field name="decided_at" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_facodi_ai_learning_suggestion_form" model="ir.ui.view">
+        <field name="name">facodi.ai.learning.suggestion.form</field>
+        <field name="model">facodi.ai.learning.suggestion</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'pending_review'" groups="website_slides.group_website_slides_manager"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'pending_review'" groups="website_slides.group_website_slides_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending_review,approved,rejected"/>
+                </header>
+                <sheet>
+                    <group><group string="Source"><field name="source_channel_id" readonly="1"/><field name="source_slide_id" readonly="1"/></group><group string="Suggested target"><field name="target_unit_id" readonly="1"/><field name="target_channel_id" readonly="1"/><field name="target_slide_id" readonly="1"/><field name="relation_type"/><field name="confidence"/></group></group>
+                    <group string="Evidence"><field name="rationale"/><field name="analysis_id" readonly="1"/><field name="provider_code" readonly="1"/><field name="model_name" readonly="1"/><field name="prompt_version" readonly="1"/></group>
+                    <group string="Review"><field name="review_note" readonly="state != 'pending_review'"/><field name="reviewer_id" readonly="1"/><field name="decided_at" readonly="1"/><field name="official_model" readonly="1"/><field name="official_res_id" readonly="1"/></group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_facodi_ai_learning_suggestions" model="ir.actions.act_window">
+        <field name="name">Learning Suggestions</field><field name="res_model">facodi.ai.learning.suggestion</field><field name="view_mode">list,form</field><field name="domain">[('state', '=', 'pending_review')]</field>
+    </record>
+    <menuitem id="menu_facodi_ai_learning_suggestions" name="Learning Suggestions" parent="menu_facodi_ai_root" action="action_facodi_ai_learning_suggestions" sequence="25" groups="website_slides.group_website_slides_manager"/>
+</odoo>
