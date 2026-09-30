@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: marcelo-m7/facodi-learning
-          ref: 0a5f78b35d5d70ad589eb75b15c55077baab064c
+          ref: 4c1a2886d91280247765ec778c4cd2d5c6b37ff8
           path: .ci/facodi-learning
       - name: Build Odoo CI image
         run: docker build -f docker/Dockerfile.ci -t facodi-ai-ci .
