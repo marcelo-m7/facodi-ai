@@ -75,7 +75,7 @@ Install the Python dependency from `requirements.txt` in the same Python environ
 
 ## Testing
 
-The CI validates repository contracts, Odoo clean installation, upgrades, server-side Website translation contracts and the FACODI Website HOOT tests. Provider calls are mocked in automated tests; CI does not require real API keys.
+The CI validates repository contracts, Odoo clean installation, upgrades, server-side Website translation contracts and the FACODI Website HOOT tests. Because `facodi_ai` depends on `facodi_learning`, CI checks out an explicit FACODI Learning compatibility baseline instead of floating on that repository's `main`; update that SHA deliberately whenever cross-addon contracts evolve. Provider calls are mocked in automated tests; CI does not require real API keys.
 
 See [`docs/operations.md`](docs/operations.md) for operational procedures and troubleshooting.
 

@@ -91,6 +91,18 @@ class RepositoryContractTest(unittest.TestCase):
         requirements = (ROOT / "requirements.txt").read_text().splitlines()
         self.assertEqual(requirements, ["pydantic-ai-slim[openai,google]==2.39.0"])
 
+    def test_facodi_learning_ci_baseline_is_explicit_and_current(self):
+        workflow = (
+            ROOT / ".github" / "workflows" / "ci.yml"
+        ).read_text(encoding="utf-8")
+        expected = "0a5f78b35d5d70ad589eb75b15c55077baab064c"
+        self.assertIn("repository: marcelo-m7/facodi-learning", workflow)
+        self.assertIn(f"ref: {expected}", workflow)
+        self.assertNotIn(
+            "ref: 38ba9b0c7fe4964f9bcd73978b9adf5407dc3425",
+            workflow,
+        )
+
     def test_ci_isolates_ai_dependencies_from_odoo_system_python(self):
         dockerfile = (ROOT / "docker" / "Dockerfile.ci").read_text()
         self.assertIn(
