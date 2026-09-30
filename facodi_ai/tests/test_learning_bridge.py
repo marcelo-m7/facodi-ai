@@ -194,6 +194,32 @@ class TestLearningBridge(TransactionCase):
             self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course), job
         )
 
+    def test_provider_failure_never_persists_secret_or_traceback(self):
+        job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
+
+        with (
+            patch.object(
+                FacodiAIProfileResolver,
+                "_resolve",
+                return_value=self._resolved_profile(),
+            ),
+            patch.object(
+                FacodiAIService,
+                "_run",
+                side_effect=RuntimeError(
+                    "Authorization: sk-secret-value\n"
+                    "Traceback (most recent call last): hidden"
+                ),
+            ),
+        ):
+            job._process()
+
+        self.assertEqual(job.state, "pending")
+        self.assertEqual(job.retry_count, 1)
+        self.assertNotIn("sk-secret-value", job.error_message)
+        self.assertNotIn("Traceback", job.error_message)
+        self.assertIn("Authorization=[redacted]", job.error_message)
+
     def test_approved_slide_suggestion_preserves_ai_analysis_provenance(self):
         job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.source_slide)
         output = LearningAnalysisResult.model_validate(
