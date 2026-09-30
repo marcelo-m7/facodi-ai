@@ -30,7 +30,7 @@ jobs:
             --exclude-dir=__pycache__ \
             --exclude='test_repository_contract.py' \
             '(^|[^[:alnum:]_])(TODO|FIXME|CHANGEME|YOUR_[A-Z0-9_]*KEY)([^[:alnum:]_]|$)' \
-            facodi_ai facodi_ai_website README.md docs/operations.md; then
+            facodi_ai facodi_ai_learning facodi_ai_website README.md docs/operations.md; then
             echo "Release placeholder markers found"
             exit 1
           fi
@@ -59,6 +59,12 @@ jobs:
           repository: marcelo-m7/facodi-learning
           ref: 4c1a2886d91280247765ec778c4cd2d5c6b37ff8
           path: .ci/facodi-learning
+      - name: Checkout legacy facodi-ai layout for real migration test
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: marcelo-m7/facodi-ai
+          ref: 756e48cc447f82280e8b9ad0958b516d0d45fc87
+          path: .ci/facodi-ai-legacy
       - name: Build Odoo CI image
         run: docker build -f docker/Dockerfile.ci -t facodi-ai-ci .
       - name: Core-only install
@@ -77,7 +83,7 @@ jobs:
             --db_port=5432 \
             --db_user=odoo \
             --db_password=odoo \
-            --addons-path=/mnt/extra-addons,/mnt/extra-addons/.ci/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
+            --addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons \
             --database=facodi_ai_test \
             --workers=0 \
             --without-demo=True \
@@ -114,9 +120,9 @@ jobs:
             --workers=0 \
             --without-demo=True \
             --test-enable \
-            --test-tags=/facodi_ai,/facodi_ai_website \
+            --test-tags=/facodi_ai,/facodi_ai_learning,/facodi_ai_website \
             --stop-after-init \
-            --init=facodi_ai,facodi_ai_website \
+            --init=facodi_ai,facodi_ai_learning,facodi_ai_website \
             2>&1 | tee /tmp/odoo-clean-install.log
       - name: Upload clean-install log
         if: always()
@@ -146,9 +152,9 @@ jobs:
             --workers=0 \
             --without-demo=True \
             --test-enable \
-            --test-tags=/facodi_ai,/facodi_ai_website \
+            --test-tags=/facodi_ai,/facodi_ai_learning,/facodi_ai_website \
             --stop-after-init \
-            --update=facodi_ai,facodi_ai_website \
+            --update=facodi_ai,facodi_ai_learning,facodi_ai_website \
             2>&1 | tee /tmp/odoo-upgrade.log
       - name: Upload upgrade log
         if: always()
@@ -157,3 +163,104 @@ jobs:
           name: odoo-upgrade-log
           path: /tmp/odoo-upgrade.log
           if-no-files-found: ignore
+
+      - name: Create bridge migration fixture database
+        shell: bash
+        run: |
+          docker run --rm --network host \
+            -e PGPASSWORD=odoo \
+            postgres:16 \
+            sh -ec 'dropdb -h 127.0.0.1 -p 5432 -U odoo --if-exists facodi_ai_bridge_upgrade && createdb -h 127.0.0.1 -p 5432 -U odoo facodi_ai_bridge_upgrade'
+
+      - name: Install legacy two-addon AI layout
+        shell: bash
+        run: |
+          set -o pipefail
+          docker run --rm --network host \
+            -e HOST=127.0.0.1 \
+            -e PORT=5432 \
+            -e USER=odoo \
+            -e PASSWORD=odoo \
+            -v "$PWD/.ci/facodi-ai-legacy:/mnt/legacy-ai" \
+            -v "$PWD/.ci/facodi-learning:/mnt/facodi-learning" \
+            facodi-ai-ci \
+            odoo \
+            --db_host=127.0.0.1 \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/mnt/legacy-ai,/mnt/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
+            --database=facodi_ai_bridge_upgrade \
+            --workers=0 \
+            --without-demo=True \
+            --stop-after-init \
+            --init=facodi_ai \
+            2>&1 | tee /tmp/odoo-legacy-bridge-install.log
+
+      - name: Seed legacy learning bridge rows and XML-ID identities
+        shell: bash
+        run: |
+          docker run --rm -i --network host \
+            -e HOST=127.0.0.1 \
+            -e PORT=5432 \
+            -e USER=odoo \
+            -e PASSWORD=odoo \
+            -v "$PWD/.ci/facodi-ai-legacy:/mnt/legacy-ai" \
+            -v "$PWD/.ci/facodi-learning:/mnt/facodi-learning" \
+            facodi-ai-ci \
+            odoo shell \
+            --db_host=127.0.0.1 \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/mnt/legacy-ai,/mnt/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
+            --database=facodi_ai_bridge_upgrade \
+            < scripts/ci_seed_learning_bridge_upgrade.py
+
+      - name: Upgrade core and install learning bridge in one registry transition
+        shell: bash
+        run: |
+          set -o pipefail
+          docker run --rm --network host \
+            -e HOST=127.0.0.1 \
+            -e PORT=5432 \
+            -e USER=odoo \
+            -e PASSWORD=odoo \
+            -v "$PWD:/mnt/current-ai" \
+            -v "$PWD/.ci/facodi-learning:/mnt/facodi-learning" \
+            facodi-ai-ci \
+            odoo \
+            --db_host=127.0.0.1 \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/mnt/current-ai,/mnt/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
+            --database=facodi_ai_bridge_upgrade \
+            --workers=0 \
+            --without-demo=True \
+            --test-enable \
+            --test-tags=/facodi_ai_learning \
+            --stop-after-init \
+            --update=facodi_ai \
+            --init=facodi_ai_learning \
+            2>&1 | tee /tmp/odoo-learning-bridge-upgrade.log
+
+      - name: Verify bridge rows and XML IDs survived migration
+        shell: bash
+        run: |
+          docker run --rm -i --network host \
+            -e HOST=127.0.0.1 \
+            -e PORT=5432 \
+            -e USER=odoo \
+            -e PASSWORD=odoo \
+            -v "$PWD:/mnt/current-ai" \
+            -v "$PWD/.ci/facodi-learning:/mnt/facodi-learning" \
+            facodi-ai-ci \
+            odoo shell \
+            --db_host=127.0.0.1 \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/mnt/current-ai,/mnt/facodi-learning,/usr/lib/python3/dist-packages/odoo/addons \
+            --database=facodi_ai_bridge_upgrade \
+            < scripts/ci_verify_learning_bridge_upgrade.py
