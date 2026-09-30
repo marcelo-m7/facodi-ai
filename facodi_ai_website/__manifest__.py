@@ -1,7 +1,7 @@
 {
     "name": "FACODI AI Website",
     "summary": "AI-assisted translation in the standard Odoo Website editor",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "category": "Website/Website",
     "author": "Marcelo Santos",
     "website": "https://facodi.pt",
