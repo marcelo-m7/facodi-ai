@@ -1,6 +1,7 @@
 from hashlib import sha256
 
 from odoo import models
+from odoo.exceptions import AccessError
 
 from odoo.addons.facodi_ai.services.errors import ValidationError
 
@@ -37,7 +38,7 @@ class FacodiAIWebsiteSourceResolver(models.AbstractModel):
             raise ValidationError("Translation unit record does not exist.")
         try:
             record.check_access("read")
-        except Exception as exc:
+        except AccessError as exc:
             raise ValidationError("Translation unit record is not readable.") from exc
 
         default_lang = website.default_lang_id.code
