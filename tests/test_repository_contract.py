@@ -16,16 +16,20 @@ def load_manifest(addon):
 class RepositoryContractTest(unittest.TestCase):
     def test_addon_boundaries(self):
         core = load_manifest("facodi_ai")
+        learning = load_manifest("facodi_ai_learning")
         website = load_manifest("facodi_ai_website")
+        self.assertNotIn("facodi_learning", core["depends"])
         self.assertNotIn("website", core["depends"])
         self.assertNotIn("website_slides", core["depends"])
+        self.assertEqual(learning["depends"], ["facodi_ai", "facodi_learning"])
         self.assertEqual(website["depends"], ["website", "facodi_ai"])
         self.assertTrue(core["application"])
+        self.assertFalse(learning["application"])
         self.assertFalse(website["application"])
 
 
     def test_odoo_manifest_data_and_assets_resolve(self):
-        for addon in ("facodi_ai", "facodi_ai_website"):
+        for addon in ("facodi_ai", "facodi_ai_learning", "facodi_ai_website"):
             with self.subTest(addon=addon):
                 manifest = load_manifest(addon)
                 addon_root = ROOT / addon
@@ -61,7 +65,7 @@ class RepositoryContractTest(unittest.TestCase):
 
     def test_odoo_xml_is_well_formed_and_external_ids_are_unique_per_addon(self):
         external_id_tags = {"record", "template", "menuitem"}
-        for addon in ("facodi_ai", "facodi_ai_website"):
+        for addon in ("facodi_ai", "facodi_ai_learning", "facodi_ai_website"):
             with self.subTest(addon=addon):
                 manifest = load_manifest(addon)
                 owners = {}
@@ -86,6 +90,87 @@ class RepositoryContractTest(unittest.TestCase):
                     duplicates,
                     f"{addon} duplicate external IDs across manifest XML files: {duplicates}",
                 )
+
+    def test_reusable_core_contains_no_learning_model_references(self):
+        forbidden = (
+            "facodi_learning",
+            "website_slides",
+            "slide.channel",
+            "slide.slide",
+            "facodi.learning.",
+            "facodi.ai.learning.",
+        )
+        roots = [
+            ROOT / "facodi_ai" / "models",
+            ROOT / "facodi_ai" / "data",
+            ROOT / "facodi_ai" / "security",
+            ROOT / "facodi_ai" / "views",
+        ]
+        violations = []
+        for root in roots:
+            for path in root.rglob("*"):
+                if not path.is_file() or path.suffix not in {".py", ".xml", ".csv"}:
+                    continue
+                text = path.read_text(encoding="utf-8")
+                for value in forbidden:
+                    if value in text:
+                        violations.append(f"{path.relative_to(ROOT)}: {value}")
+        self.assertFalse(
+            violations,
+            "reusable facodi_ai core still contains learning coupling: "
+            + ", ".join(violations),
+        )
+
+    def test_learning_bridge_migration_contract(self):
+        migration = (
+            ROOT
+            / "facodi_ai"
+            / "migrations"
+            / "19.0.2.0.0"
+            / "pre-migrate.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("module = 'facodi_ai_learning'", migration)
+        self.assertIn("module = 'facodi_ai'", migration)
+        self.assertIn("ir_cron_facodi_ai_learning_jobs", migration)
+        self.assertIn("model_facodi_ai_learning_job", migration)
+
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "Checkout legacy facodi-ai layout for real migration test",
+            workflow,
+        )
+        self.assertIn(
+            "756e48cc447f82280e8b9ad0958b516d0d45fc87",
+            workflow,
+        )
+        self.assertIn(
+            "ci_seed_learning_bridge_upgrade.py",
+            workflow,
+        )
+        self.assertIn(
+            "ci_verify_learning_bridge_upgrade.py",
+            workflow,
+        )
+        self.assertIn(
+            "--init=facodi_ai_learning",
+            workflow,
+        )
+
+    def test_core_only_ci_does_not_expose_facodi_learning_addons_path(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        start = workflow.index("- name: Core-only install")
+        end = workflow.index("- name: Reset database after core-only install")
+        core_only = workflow[start:end]
+        self.assertIn(
+            "--addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons",
+            core_only,
+        )
+        self.assertNotIn(".ci/facodi-learning", core_only)
+        self.assertIn("--init=facodi_ai", core_only)
 
     def test_github_actions_are_commit_pinned(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
@@ -183,6 +268,7 @@ class RepositoryContractTest(unittest.TestCase):
         operations = (ROOT / "docs" / "operations.md").read_text()
         for required in (
             "facodi_ai",
+            "facodi_ai_learning",
             "facodi_ai_website",
             "Odoo 19 Community",
             "Translate untranslated",
@@ -196,7 +282,9 @@ class RepositoryContractTest(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
         self.assertIn("Core-only install", workflow)
         self.assertIn("Clean install addons", workflow)
+        self.assertIn("facodi_ai,facodi_ai_learning,facodi_ai_website", workflow)
         self.assertIn("Upgrade addons", workflow)
+        self.assertIn("Verify bridge rows and XML IDs survived migration", workflow)
         self.assertIn("git diff --check", workflow)
         self.assertIn("placeholder", workflow.lower())
 
