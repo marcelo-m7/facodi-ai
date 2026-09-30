@@ -1,6 +1,9 @@
 import ast
+import glob
 import pathlib
 import unittest
+import xml.etree.ElementTree as ET
+from collections import Counter
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -19,6 +22,70 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertEqual(website["depends"], ["website", "facodi_ai"])
         self.assertTrue(core["application"])
         self.assertFalse(website["application"])
+
+
+    def test_odoo_manifest_data_and_assets_resolve(self):
+        for addon in ("facodi_ai", "facodi_ai_website"):
+            with self.subTest(addon=addon):
+                manifest = load_manifest(addon)
+                addon_root = ROOT / addon
+                data_paths = [*manifest.get("data", []), *manifest.get("demo", [])]
+                duplicates = sorted(
+                    path for path, count in Counter(data_paths).items() if count > 1
+                )
+                self.assertFalse(
+                    duplicates,
+                    f"{addon} has duplicate manifest data entries: {duplicates}",
+                )
+                missing = sorted(
+                    path for path in data_paths if not (addon_root / path).is_file()
+                )
+                self.assertFalse(
+                    missing,
+                    f"{addon} manifest references missing data files: {missing}",
+                )
+
+                missing_assets = []
+                for bundle, entries in manifest.get("assets", {}).items():
+                    for entry in entries:
+                        pattern = str(ROOT / entry)
+                        if glob.has_magic(pattern):
+                            if not glob.glob(pattern, recursive=True):
+                                missing_assets.append(f"{bundle}: {entry}")
+                        elif not pathlib.Path(pattern).is_file():
+                            missing_assets.append(f"{bundle}: {entry}")
+                self.assertFalse(
+                    missing_assets,
+                    f"{addon} manifest assets do not resolve: {missing_assets}",
+                )
+
+    def test_odoo_xml_is_well_formed_and_external_ids_are_unique_per_addon(self):
+        external_id_tags = {"record", "template", "menuitem"}
+        for addon in ("facodi_ai", "facodi_ai_website"):
+            with self.subTest(addon=addon):
+                manifest = load_manifest(addon)
+                owners = {}
+                duplicates = []
+                for relative_path in [
+                    *manifest.get("data", []),
+                    *manifest.get("demo", []),
+                ]:
+                    if not relative_path.endswith(".xml"):
+                        continue
+                    root = ET.parse(ROOT / addon / relative_path).getroot()
+                    for element in root.iter():
+                        external_id = element.attrib.get("id")
+                        if element.tag not in external_id_tags or not external_id:
+                            continue
+                        previous = owners.setdefault(external_id, relative_path)
+                        if previous != relative_path:
+                            duplicates.append(
+                                (external_id, previous, relative_path)
+                            )
+                self.assertFalse(
+                    duplicates,
+                    f"{addon} duplicate external IDs across manifest XML files: {duplicates}",
+                )
 
     def test_pydantic_ai_is_pinned(self):
         requirements = (ROOT / "requirements.txt").read_text().splitlines()
