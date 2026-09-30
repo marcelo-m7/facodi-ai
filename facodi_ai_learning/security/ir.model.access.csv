@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_facodi_ai_learning_job_manager,FACODI AI learning job manager,model_facodi_ai_learning_job,website_slides.group_website_slides_manager,1,1,1,0
+access_facodi_ai_learning_analysis_manager,FACODI AI learning analysis manager,model_facodi_ai_learning_analysis,website_slides.group_website_slides_manager,1,0,0,0
+access_facodi_ai_learning_suggestion_manager,FACODI AI learning suggestion manager,model_facodi_ai_learning_suggestion,website_slides.group_website_slides_manager,1,1,1,0
