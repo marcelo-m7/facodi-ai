@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from psycopg2 import IntegrityError
 from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase
 
@@ -76,6 +77,65 @@ class TestLearningBridge(TransactionCase):
         second = Job._enqueue_for_source(self.course)
         self.assertEqual(first, second)
         self.assertEqual(first.state, "pending")
+
+    def test_database_uniqueness_covers_course_and_content_sources(self):
+        Job = self.env["facodi.ai.learning.job"]
+        for source, field_name in (
+            (self.course, "source_channel_id"),
+            (self.source_slide, "source_slide_id"),
+        ):
+            first = Job._enqueue_for_source(source)
+            with self.assertRaises(IntegrityError), self.env.cr.savepoint():
+                Job.create(
+                    {
+                        field_name: source.id,
+                        "source_hash": first.source_hash,
+                        "profile_id": self.profile.id,
+                    }
+                )
+
+    def test_terminal_failed_job_is_reactivated_without_duplicate(self):
+        Job = self.env["facodi.ai.learning.job"]
+        job = Job._enqueue_for_source(self.course)
+        job.write({"max_retries": 1})
+
+        with (
+            patch.object(
+                FacodiAIProfileResolver,
+                "_resolve",
+                return_value=self._resolved_profile(),
+            ),
+            patch.object(
+                FacodiAIService,
+                "_run",
+                side_effect=RuntimeError("provider unavailable"),
+            ),
+        ):
+            job._process()
+
+        self.assertEqual(job.state, "failed")
+        self.assertEqual(job.retry_count, 1)
+        self.assertTrue(job.error_message)
+
+        retried = Job._enqueue_for_source(self.course)
+
+        self.assertEqual(retried, job)
+        self.assertEqual(retried.state, "pending")
+        self.assertEqual(retried.retry_count, 0)
+        self.assertFalse(retried.next_retry_at)
+        self.assertFalse(retried.error_message)
+        self.assertFalse(retried.started_at)
+        self.assertFalse(retried.finished_at)
+        self.assertEqual(retried.profile_id, self.profile)
+        self.assertEqual(
+            Job.search_count(
+                [
+                    ("source_channel_id", "=", self.course.id),
+                    ("source_hash", "=", job.source_hash),
+                ]
+            ),
+            1,
+        )
 
     def test_missing_learning_profile_blocks_explicit_request_without_job(self):
         params = self.env["ir.config_parameter"].sudo()
