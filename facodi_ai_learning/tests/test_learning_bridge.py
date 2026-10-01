@@ -119,8 +119,9 @@ class TestLearningBridge(TransactionCase):
                 FacodiAIProfileResolver,
                 "_resolve",
                 return_value=self._resolved_profile(),
-            ):
+            ) as resolver:
                 job._process()
+                self.assertEqual(resolver.call_count, 1)
         finally:
             if previous is None:
                 params.set_param("facodi_ai.enabled", "1")
@@ -232,6 +233,13 @@ class TestLearningBridge(TransactionCase):
 
     def test_provider_job_creates_auditable_reviewable_suggestion(self):
         job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
+        coverage_domain = [
+            ("channel_id", "=", self.course.id),
+            ("curriculum_unit_id", "=", self.unit.id),
+        ]
+        coverage_before = self.env[
+            "facodi.learning.curriculum.coverage"
+        ].search_count(coverage_domain)
         output = LearningAnalysisResult.model_validate(
             {
                 "candidates": [
@@ -265,6 +273,13 @@ class TestLearningBridge(TransactionCase):
         self.assertEqual(len(suggestion), 1)
         self.assertEqual(suggestion.state, "pending_review")
         self.assertEqual(suggestion.target_unit_id, self.unit)
+        self.assertFalse(suggestion.official_res_id)
+        self.assertEqual(
+            self.env["facodi.learning.curriculum.coverage"].search_count(
+                coverage_domain
+            ),
+            coverage_before,
+        )
 
     def test_provider_failure_is_retried_without_duplicate_jobs(self):
         job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
