@@ -4,12 +4,13 @@ FACODI AI is an Odoo 19 Community add-on suite that provides reusable, server-si
 
 ## Architecture
 
-The repository is intentionally split into two add-ons:
+The repository is intentionally split into three add-ons:
 
-- `facodi_ai` — reusable AI runtime, providers, connections, profiles, prompts, auditing and Settings UI. It has no dependency on `website` or `website_slides`.
-- `facodi_ai_website` — optional Website integration. It depends on `website` and `facodi_ai` and adds AI-assisted translation to Odoo's standard Website translation editor.
+- `facodi_ai` — reusable AI runtime, providers, connections, profiles, prompts, auditing and generic Settings UI. It has no dependency on FACODI Learning, Website or eLearning.
+- `facodi_ai_learning` — optional FACODI Learning bridge. It depends on `facodi_ai` + `facodi_learning` and owns learning jobs, analyses, suggestions, slide actions, cron and Manager review UI.
+- `facodi_ai_website` — optional Website integration. It depends on `website` + `facodi_ai` and adds AI-assisted translation to Odoo's standard Website translation editor.
 
-This boundary keeps the AI runtime reusable by future FACODI features without coupling the core to Website.
+This boundary keeps the AI runtime reusable while isolating learning and Website integrations behind dedicated addons.
 
 ## Runtime
 
@@ -49,17 +50,19 @@ This design avoids duplicate pages and preserves Odoo's normal multilingual Webs
 
 ## Installation
 
-Make both add-ons available on the Odoo add-ons path and install the core first, or install the Website integration directly and let Odoo resolve its dependency:
+Install the reusable core alone when no FACODI-specific integration is required. Install the optional bridge addons only when their dependencies are present:
 
 ```bash
 odoo -d <database> -i facodi_ai --stop-after-init
+odoo -d <database> -i facodi_ai_learning --stop-after-init
 odoo -d <database> -i facodi_ai_website --stop-after-init
 ```
 
-For upgrades:
+When upgrading an existing database from the legacy two-addon layout, update the core and install the learning bridge in the same maintenance operation so existing learning model/table data remains registered continuously:
 
 ```bash
-odoo -d <database> -u facodi_ai,facodi_ai_website --stop-after-init
+odoo -d <database> -u facodi_ai -i facodi_ai_learning --stop-after-init
+odoo -d <database> -u facodi_ai_learning,facodi_ai_website --stop-after-init
 ```
 
 Install the Python dependency from `requirements.txt` in the same Python environment used to run Odoo.
@@ -75,7 +78,7 @@ Install the Python dependency from `requirements.txt` in the same Python environ
 
 ## Testing
 
-The CI validates repository contracts, Odoo clean installation, upgrades, server-side Website translation contracts and the FACODI Website HOOT tests. Because `facodi_ai` depends on `facodi_learning`, CI checks out an explicit FACODI Learning compatibility baseline instead of floating on that repository's `main`; update that SHA deliberately whenever cross-addon contracts evolve. Provider calls are mocked in automated tests; CI does not require real API keys.
+The CI validates repository contracts, a true core-only Odoo installation with no FACODI Learning addon path, combined bridge/Website installation, same-version upgrades and a real migration fixture from the legacy `facodi_ai` learning layout. The optional learning bridge is tested against an explicit FACODI Learning compatibility SHA instead of floating on that repository's `main`. Provider calls are mocked in automated tests; CI does not require real API keys.
 
 See [`docs/operations.md`](docs/operations.md) for operational procedures and troubleshooting.
 

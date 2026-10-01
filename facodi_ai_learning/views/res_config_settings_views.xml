@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_learning" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.facodi.ai.learning</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="facodi_ai.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='facodi_ai_runtime']" position="inside">
+                <setting string="Learning Analysis Profile"
+                         help="Profile used for audited, structured learning mapping suggestions. Suggestions always require eLearning Manager review.">
+                    <field name="facodi_ai_learning_profile_id" options="{'no_create': True}"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

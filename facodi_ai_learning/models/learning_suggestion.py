@@ -4,7 +4,7 @@ import json
 from odoo import SUPERUSER_ID, api, fields, models
 from odoo.exceptions import AccessError, ValidationError
 
-from ..services.contracts import LearningAnalysisResult
+from odoo.addons.facodi_ai.services.contracts import LearningAnalysisResult
 
 
 class FacodiAILearningJob(models.Model):
