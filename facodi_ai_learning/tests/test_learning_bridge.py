@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase
 
 from odoo.addons.facodi_ai.models.ai_service import FacodiAIService
@@ -75,6 +76,98 @@ class TestLearningBridge(TransactionCase):
         second = Job._enqueue_for_source(self.course)
         self.assertEqual(first, second)
         self.assertEqual(first.state, "pending")
+
+    def test_missing_learning_profile_blocks_explicit_request_without_job(self):
+        params = self.env["ir.config_parameter"].sudo()
+        previous = params.get_param("facodi_ai.learning_profile_id")
+        before = self.env["facodi.ai.learning.job"].search_count([])
+        params.set_param("facodi_ai.learning_profile_id", "")
+        try:
+            with self.assertRaisesRegex(
+                ValidationError,
+                "Configure an active FACODI AI learning profile",
+            ):
+                self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
+        finally:
+            params.set_param("facodi_ai.learning_profile_id", previous or self.profile.id)
+
+        self.assertEqual(
+            self.env["facodi.ai.learning.job"].search_count([]),
+            before,
+        )
+
+    def test_disabled_ai_preserves_manual_flow_without_learning_side_effects(self):
+        job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
+        params = self.env["ir.config_parameter"].sudo()
+        previous = params.get_param("facodi_ai.enabled")
+        before = {
+            "analysis": self.env["facodi.ai.learning.analysis"].search_count([]),
+            "suggestion": self.env["facodi.ai.learning.suggestion"].search_count([]),
+            "coverage": self.env[
+                "facodi.learning.curriculum.coverage"
+            ].search_count([]),
+            "course_mapping": self.env[
+                "facodi.learning.course.mapping"
+            ].search_count([]),
+            "content_mapping": self.env[
+                "facodi.learning.mapping"
+            ].search_count([]),
+        }
+        params.set_param("facodi_ai.enabled", "0")
+        try:
+            with patch.object(
+                FacodiAIProfileResolver,
+                "_resolve",
+                return_value=self._resolved_profile(),
+            ):
+                job._process()
+        finally:
+            if previous is None:
+                params.set_param("facodi_ai.enabled", "1")
+            else:
+                params.set_param("facodi_ai.enabled", previous)
+
+        job.invalidate_recordset()
+        self.assertEqual(job.state, "pending")
+        self.assertEqual(job.retry_count, 1)
+        self.assertFalse(job.analysis_id)
+        self.assertEqual(
+            self.env["facodi.ai.learning.analysis"].search_count([]),
+            before["analysis"],
+        )
+        self.assertEqual(
+            self.env["facodi.ai.learning.suggestion"].search_count([]),
+            before["suggestion"],
+        )
+        self.assertEqual(
+            self.env["facodi.learning.curriculum.coverage"].search_count([]),
+            before["coverage"],
+        )
+        self.assertEqual(
+            self.env["facodi.learning.course.mapping"].search_count([]),
+            before["course_mapping"],
+        )
+        self.assertEqual(
+            self.env["facodi.learning.mapping"].search_count([]),
+            before["content_mapping"],
+        )
+
+    def test_cron_never_enqueues_unrequested_learning_sources(self):
+        unrequested = self.env["slide.channel"].create(
+            {"name": "Unrequested AI Learning Course"}
+        )
+        Job = self.env["facodi.ai.learning.job"]
+        before = Job.search_count([])
+
+        Job._cron_process_pending()
+
+        self.assertEqual(Job.search_count([]), before)
+        self.assertFalse(
+            Job.search(
+                [("source_channel_id", "=", unrequested.id)],
+                limit=1,
+            )
+        )
 
     def test_course_prompt_contains_only_explicit_existing_target_ids(self):
         job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
