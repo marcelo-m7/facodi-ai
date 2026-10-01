@@ -323,7 +323,21 @@ class FacodiAILearningJob(models.Model):
         """
         self.ensure_one()
         with self.env.cr.savepoint():
-            analysis = self._persist_analysis_result(resolved, result)
+            analysis = self.env["facodi.ai.learning.analysis"].create(
+                {
+                    "job_id": self.id,
+                    "source_channel_id": self.source_channel_id.id,
+                    "source_slide_id": self.source_slide_id.id,
+                    "source_hash": self.source_hash,
+                    "provider_code": resolved.provider_code,
+                    "model_name": resolved.model_name,
+                    "prompt_version": str(
+                        self.profile_id.prompt_id.version or ""
+                    ),
+                    "structured_result": result.model_dump(mode="json"),
+                }
+            )
+            self._create_suggestions(analysis, result)
         return analysis
 
     def _process(self):
@@ -351,19 +365,7 @@ class FacodiAILearningJob(models.Model):
                 instructions=self._provider_instructions(),
                 user_prompt=self._provider_prompt(source_payload),
             )
-            analysis = self.env["facodi.ai.learning.analysis"].create(
-                {
-                    "job_id": self.id,
-                    "source_channel_id": self.source_channel_id.id,
-                    "source_slide_id": self.source_slide_id.id,
-                    "source_hash": self.source_hash,
-                    "provider_code": resolved.provider_code,
-                    "model_name": resolved.model_name,
-                    "prompt_version": str(self.profile_id.prompt_id.version or ""),
-                    "structured_result": result.model_dump(mode="json"),
-                }
-            )
-            self._create_suggestions(analysis, result)
+            analysis = self._persist_analysis_result(resolved, result)
             self.write(
                 {
                     "state": "completed",
