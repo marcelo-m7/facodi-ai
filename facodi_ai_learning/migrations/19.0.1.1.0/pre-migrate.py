@@ -42,28 +42,6 @@ def migrate(cr, version):
 
     cr.execute(
         f"""
-        WITH ranked AS ({ranking}),
-        duplicate_groups AS (
-            SELECT DISTINCT keep_id
-              FROM ranked
-             WHERE duplicate_count > 1
-        ),
-        latest_analysis AS (
-            SELECT analysis.job_id AS keep_id, MAX(analysis.id) AS analysis_id
-              FROM facodi_ai_learning_analysis AS analysis
-              JOIN duplicate_groups
-                ON duplicate_groups.keep_id = analysis.job_id
-             GROUP BY analysis.job_id
-        )
-        UPDATE facodi_ai_learning_job AS job
-           SET analysis_id = latest_analysis.analysis_id
-          FROM latest_analysis
-         WHERE job.id = latest_analysis.keep_id
-        """
-    )
-
-    cr.execute(
-        f"""
         WITH ranked AS ({ranking})
         DELETE FROM facodi_ai_learning_job AS job
          USING ranked
