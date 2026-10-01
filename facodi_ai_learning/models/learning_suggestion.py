@@ -1,10 +1,14 @@
 import hashlib
 import json
+import logging
 
 from odoo import SUPERUSER_ID, api, fields, models
 from odoo.exceptions import AccessError, ValidationError
 
 from odoo.addons.facodi_ai.services.contracts import LearningAnalysisResult
+
+
+_logger = logging.getLogger(__name__)
 
 
 class FacodiAILearningJob(models.Model):
@@ -310,6 +314,18 @@ class FacodiAILearningJob(models.Model):
                 }
             )
 
+    def _persist_analysis_result(self, resolved, result):
+        """Persist bridge-local analysis and suggestions atomically.
+
+        The provider/runtime call happens before this boundary so its reusable
+        audit trail is not discarded if bridge persistence fails. Any local
+        analysis/suggestion partial writes are rolled back together.
+        """
+        self.ensure_one()
+        with self.env.cr.savepoint():
+            analysis = self._persist_analysis_result(resolved, result)
+        return analysis
+
     def _process(self):
         self.ensure_one()
         if self.state != "pending":
@@ -356,6 +372,11 @@ class FacodiAILearningJob(models.Model):
                 }
             )
         except Exception as error:
+            _logger.warning(
+                "FACODI AI learning job %s failed (%s)",
+                self.id,
+                type(error).__name__,
+            )
             retries = self.retry_count + 1
             delay_seconds = min(2 ** (retries - 1), 60)
             safe_error = self.env["facodi.ai.audit"]._sanitize_error(error)
