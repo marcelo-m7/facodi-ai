@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: marcelo-m7/facodi-learning
-          ref: 4c1a2886d91280247765ec778c4cd2d5c6b37ff8
+          ref: 159b2868a92a9f821910667290f6da5733103f32
           path: .ci/facodi-learning
       - name: Checkout legacy facodi-ai layout for real migration test
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
