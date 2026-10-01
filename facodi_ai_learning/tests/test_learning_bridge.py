@@ -341,6 +341,66 @@ class TestLearningBridge(TransactionCase):
             coverage_before,
         )
 
+    def test_bridge_persistence_failure_rolls_back_partial_analysis(self):
+        Job = self.env["facodi.ai.learning.job"]
+        Analysis = self.env["facodi.ai.learning.analysis"]
+        Suggestion = self.env["facodi.ai.learning.suggestion"]
+        job = Job._enqueue_for_source(self.course)
+        output = LearningAnalysisResult.model_validate(
+            {
+                "candidates": [
+                    {
+                        "target_kind": "unit",
+                        "target_id": self.unit.id,
+                        "relation_type": "supports",
+                        "confidence": 0.8,
+                        "rationale": "Valid candidate before simulated bridge failure.",
+                    }
+                ]
+            }
+        )
+        analysis_before = Analysis.search_count([])
+        suggestion_before = Suggestion.search_count([])
+
+        def fail_after_partial_suggestion(job_record, analysis, result):
+            Suggestion.create(
+                {
+                    "source_channel_id": job_record.source_channel_id.id,
+                    "target_unit_id": self.unit.id,
+                    "relation_type": "supports",
+                    "confidence": 0.8,
+                    "rationale": "Partial suggestion that must roll back.",
+                    "analysis_id": analysis.id,
+                    "provider_code": analysis.provider_code,
+                    "model_name": analysis.model_name,
+                    "prompt_version": analysis.prompt_version,
+                }
+            )
+            raise RuntimeError("bridge persistence failed")
+
+        with (
+            patch.object(
+                FacodiAIProfileResolver,
+                "_resolve",
+                return_value=self._resolved_profile(),
+            ),
+            patch.object(FacodiAIService, "_run", return_value=output),
+            patch.object(
+                type(job),
+                "_create_suggestions",
+                fail_after_partial_suggestion,
+            ),
+        ):
+            job._process()
+
+        job.invalidate_recordset()
+        self.assertEqual(job.state, "pending")
+        self.assertEqual(job.retry_count, 1)
+        self.assertFalse(job.analysis_id)
+        self.assertEqual(Analysis.search_count([]), analysis_before)
+        self.assertEqual(Suggestion.search_count([]), suggestion_before)
+        self.assertIn("bridge persistence failed", job.error_message)
+
     def test_provider_failure_is_retried_without_duplicate_jobs(self):
         job = self.env["facodi.ai.learning.job"]._enqueue_for_source(self.course)
 
