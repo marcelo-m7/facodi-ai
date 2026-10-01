@@ -158,6 +158,46 @@ class RepositoryContractTest(unittest.TestCase):
             workflow,
         )
 
+    def test_learning_job_idempotency_upgrade_contract(self):
+        model = (
+            ROOT
+            / "facodi_ai_learning"
+            / "models"
+            / "learning_suggestion.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "unique(source_channel_id, source_hash)",
+            model,
+        )
+        self.assertIn(
+            "unique(source_slide_id, source_hash)",
+            model,
+        )
+        self.assertNotIn(
+            "unique(source_channel_id, source_slide_id, source_hash)",
+            model,
+        )
+
+        migration = (
+            ROOT
+            / "facodi_ai_learning"
+            / "migrations"
+            / "19.0.1.1.0"
+            / "pre-migrate.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "PARTITION BY source_channel_id, source_slide_id, source_hash",
+            migration,
+        )
+        self.assertIn(
+            "UPDATE facodi_ai_learning_analysis AS analysis",
+            migration,
+        )
+        self.assertIn(
+            "DELETE FROM facodi_ai_learning_job AS job",
+            migration,
+        )
+
     def test_core_only_ci_does_not_expose_facodi_learning_addons_path(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
             encoding="utf-8"

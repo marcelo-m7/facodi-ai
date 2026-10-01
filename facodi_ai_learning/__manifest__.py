@@ -1,7 +1,7 @@
 {
     "name": "FACODI AI Learning",
     "summary": "Optional FACODI Learning integration for the reusable AI runtime",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "category": "Website/eLearning",
     "author": "FACODI",
     "website": "https://facodi.com",
