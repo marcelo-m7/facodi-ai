@@ -28,9 +28,16 @@ class FacodiAILearningJob(models.Model):
     analysis_id = fields.Many2one("facodi.ai.learning.analysis", readonly=True, ondelete="set null")
     profile_id = fields.Many2one("facodi.ai.profile", readonly=True, ondelete="restrict")
 
-    _source_hash_unique = models.Constraint(
-        "unique(source_channel_id, source_slide_id, source_hash)",
-        "This source version already has an AI learning job.",
+    # Each job has exactly one source. A single three-column UNIQUE would not
+    # protect this invariant in PostgreSQL because the unused source column is
+    # NULL and NULL values are distinct for UNIQUE constraints.
+    _channel_source_hash_unique = models.Constraint(
+        "unique(source_channel_id, source_hash)",
+        "This course version already has an AI learning job.",
+    )
+    _slide_source_hash_unique = models.Constraint(
+        "unique(source_slide_id, source_hash)",
+        "This content version already has an AI learning job.",
     )
 
     @api.constrains("source_channel_id", "source_slide_id")
@@ -52,13 +59,41 @@ class FacodiAILearningJob(models.Model):
     def _enqueue_for_source(self, source):
         source.check_access("read")
         source_hash, _payload = self._source_values(source)
-        source_field = "source_channel_id" if source._name == "slide.channel" else "source_slide_id"
-        existing = self.search([(source_field, "=", source.id), ("source_hash", "=", source_hash), ("state", "in", ["pending", "running", "completed"])], limit=1)
+        source_field = (
+            "source_channel_id"
+            if source._name == "slide.channel"
+            else "source_slide_id"
+        )
+        existing = self.search(
+            [
+                (source_field, "=", source.id),
+                ("source_hash", "=", source_hash),
+            ],
+            limit=1,
+        )
         if existing:
+            if existing.state == "failed":
+                profile = self._learning_profile()
+                existing.write(
+                    {
+                        "state": "pending",
+                        "retry_count": 0,
+                        "next_retry_at": False,
+                        "error_message": False,
+                        "started_at": False,
+                        "finished_at": False,
+                        "analysis_id": False,
+                        "profile_id": profile.id,
+                    }
+                )
             return existing
         profile = self._learning_profile()
         return self.create(
-            {source_field: source.id, "source_hash": source_hash, "profile_id": profile.id}
+            {
+                source_field: source.id,
+                "source_hash": source_hash,
+                "profile_id": profile.id,
+            }
         )
 
     @api.model
