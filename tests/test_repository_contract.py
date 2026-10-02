@@ -1,6 +1,8 @@
 import ast
 import glob
+import importlib.util
 import pathlib
+import sqlite3
 import unittest
 import xml.etree.ElementTree as ET
 from collections import Counter
@@ -158,6 +160,69 @@ class RepositoryContractTest(unittest.TestCase):
             "--init=facodi_ai_learning",
             workflow,
         )
+
+    def test_learning_bridge_migration_handles_preinstalled_bridge(self):
+        path = ROOT / "facodi_ai" / "migrations" / "19.0.2.0.0" / "pre-migrate.py"
+        spec = importlib.util.spec_from_file_location("bridge_pre_migrate", path)
+        migration = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(migration)
+
+        with sqlite3.connect(":memory:") as connection:
+            connection.execute(
+                "CREATE TABLE ir_model_data (module TEXT, name TEXT, model TEXT, "
+                "res_id INTEGER, noupdate INTEGER, UNIQUE (module, name))"
+            )
+            connection.executemany(
+                "INSERT INTO ir_model_data VALUES (?, ?, ?, ?, ?)",
+                [
+                    ("facodi_ai", "model_facodi_ai_learning_job", "ir.model", 10, 0),
+                    ("facodi_ai_learning", "model_facodi_ai_learning_job", "ir.model", 10, 0),
+                    ("facodi_ai", "ir_cron_facodi_ai_learning_jobs", "ir.cron", 20, 1),
+                    ("facodi_ai_learning", "ir_cron_facodi_ai_learning_jobs", "ir.cron", 21, 1),
+                    ("facodi_ai", "model_facodi_ai_learning_analysis", "ir.model", 30, 0),
+                ],
+            )
+            migration.migrate(connection.cursor(), "19.0.1.0.0")
+            migration.migrate(connection.cursor(), "19.0.1.0.0")
+            self.assertEqual(
+                connection.execute(
+                    "SELECT module, name, res_id, noupdate FROM ir_model_data ORDER BY name, module"
+                ).fetchall(),
+                [
+                    ("facodi_ai", "ir_cron_facodi_ai_learning_jobs", 20, 0),
+                    ("facodi_ai_learning", "ir_cron_facodi_ai_learning_jobs", 21, 1),
+                    ("facodi_ai_learning", "model_facodi_ai_learning_analysis", 30, 0),
+                    ("facodi_ai", "model_facodi_ai_learning_job", 10, 0),
+                    ("facodi_ai_learning", "model_facodi_ai_learning_job", 10, 0),
+                ],
+            )
+
+    def test_learning_bridge_migration_refuses_conflicting_identity(self):
+        path = ROOT / "facodi_ai" / "migrations" / "19.0.2.0.0" / "pre-migrate.py"
+        spec = importlib.util.spec_from_file_location("bridge_pre_migrate", path)
+        migration = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(migration)
+
+        with sqlite3.connect(":memory:") as connection:
+            connection.execute(
+                "CREATE TABLE ir_model_data (module TEXT, name TEXT, model TEXT, "
+                "res_id INTEGER, noupdate INTEGER, UNIQUE (module, name))"
+            )
+            connection.executemany(
+                "INSERT INTO ir_model_data VALUES (?, ?, ?, ?, ?)",
+                [
+                    ("facodi_ai", "model_facodi_ai_learning_job", "ir.model", 10, 0),
+                    ("facodi_ai_learning", "model_facodi_ai_learning_job", "ir.ui.view", 11, 0),
+                ],
+            )
+            with self.assertRaises(RuntimeError):
+                migration.migrate(connection.cursor(), "19.0.1.0.0")
+            self.assertEqual(
+                connection.execute(
+                    "SELECT module, model, noupdate FROM ir_model_data ORDER BY module"
+                ).fetchall(),
+                [("facodi_ai", "ir.model", 0), ("facodi_ai_learning", "ir.ui.view", 0)],
+            )
 
     def test_learning_job_idempotency_upgrade_contract(self):
         model = (
