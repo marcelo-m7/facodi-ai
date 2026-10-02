@@ -17,19 +17,20 @@ class RepositoryContractTest(unittest.TestCase):
     def test_addon_boundaries(self):
         core = load_manifest("facodi_ai")
         learning = load_manifest("facodi_ai_learning")
-        website = load_manifest("facodi_ai_website")
+        retired = load_manifest("facodi_ai_website")
         self.assertNotIn("facodi_learning", core["depends"])
         self.assertNotIn("website", core["depends"])
         self.assertNotIn("website_slides", core["depends"])
         self.assertEqual(learning["depends"], ["facodi_ai", "facodi_learning"])
-        self.assertEqual(website["depends"], ["website", "facodi_ai"])
+        self.assertEqual(retired["depends"], [])
+        self.assertFalse(retired["installable"])
         self.assertTrue(core["application"])
         self.assertFalse(learning["application"])
-        self.assertFalse(website["application"])
+        self.assertFalse(retired["application"])
 
 
     def test_odoo_manifest_data_and_assets_resolve(self):
-        for addon in ("facodi_ai", "facodi_ai_learning", "facodi_ai_website"):
+        for addon in ("facodi_ai", "facodi_ai_learning"):
             with self.subTest(addon=addon):
                 manifest = load_manifest(addon)
                 addon_root = ROOT / addon
@@ -65,7 +66,7 @@ class RepositoryContractTest(unittest.TestCase):
 
     def test_odoo_xml_is_well_formed_and_external_ids_are_unique_per_addon(self):
         external_id_tags = {"record", "template", "menuitem"}
-        for addon in ("facodi_ai", "facodi_ai_learning", "facodi_ai_website"):
+        for addon in ("facodi_ai", "facodi_ai_learning"):
             with self.subTest(addon=addon):
                 manifest = load_manifest(addon)
                 owners = {}
@@ -259,47 +260,18 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("websocket-client==1.8.0", dockerfile)
         self.assertIn("chromium", dockerfile)
 
-    def test_website_translation_builder_contract(self):
+    def test_legacy_website_translation_shell_is_retired(self):
         manifest = load_manifest("facodi_ai_website")
-        builder_assets = manifest.get("assets", {}).get("website.website_builder_assets", [])
-        unit_test_assets = manifest.get("assets", {}).get("web.assets_unit_tests", [])
-        self.assertIn("facodi_ai_website/static/src/builder/**/*", builder_assets)
-        self.assertIn("facodi_ai_website/static/tests/**/*", unit_test_assets)
-
-        plugin_path = (
-            ROOT
-            / "facodi_ai_website"
-            / "static"
-            / "src"
-            / "builder"
-            / "facodi_ai_translation_plugin.js"
-        )
-        option_path = (
-            ROOT
-            / "facodi_ai_website"
-            / "static"
-            / "src"
-            / "builder"
-            / "facodi_ai_translation_option.xml"
-        )
-        self.assertTrue(plugin_path.exists())
-        self.assertTrue(option_path.exists())
-        plugin = plugin_path.read_text()
-        option = option_path.read_text()
-
-        for action_id in (
-            "facodiTranslateUntranslatedAI",
-            "facodiRetranslatePageAI",
-            "facodiTranslateSelectedAI",
-        ):
-            self.assertIn(action_id, plugin)
-            self.assertIn(action_id, option)
-        self.assertIn('category("website-translation-plugins")', plugin)
-        self.assertIn('"/facodi_ai/website/translate"', plugin)
-        self.assertNotIn('"valueHistory"', plugin)
-        self.assertIn("element.value = value", plugin)
-        self.assertNotIn("/html_editor/generate_text", plugin)
-        self.assertNotIn("/website/field/translation/update", plugin)
+        self.assertFalse(manifest.get("installable", True))
+        self.assertEqual(manifest.get("depends", ["website"]), [])
+        self.assertEqual(manifest.get("data", ["unexpected"]), [])
+        self.assertEqual(manifest.get("assets", {"unexpected": ["x"]}), {})
+        self.assertFalse((ROOT / "facodi_ai_website" / "controllers").exists())
+        self.assertFalse((ROOT / "facodi_ai_website" / "models").exists())
+        self.assertFalse((ROOT / "facodi_ai_website" / "services").exists())
+        self.assertFalse((ROOT / "facodi_ai_website" / "static").exists())
+        self.assertFalse((ROOT / "facodi_ai_website" / "views").exists())
+        self.assertFalse((ROOT / "facodi_ai_website" / "data").exists())
 
     def test_release_documentation_and_ci_gate(self):
         self.assertTrue((ROOT / "README.md").exists())
@@ -309,11 +281,8 @@ class RepositoryContractTest(unittest.TestCase):
         for required in (
             "facodi_ai",
             "facodi_ai_learning",
-            "facodi_ai_website",
             "Odoo 19 Community",
-            "Translate untranslated",
-            "Retranslate page",
-            "Translate selected",
+            "native Odoo Website translation",
         ):
             self.assertIn(required, readme)
         self.assertIn("database backups", readme)
@@ -322,7 +291,7 @@ class RepositoryContractTest(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
         self.assertIn("Core-only install", workflow)
         self.assertIn("Clean install addons", workflow)
-        self.assertIn("facodi_ai,facodi_ai_learning,facodi_ai_website", workflow)
+        self.assertIn("facodi_ai,facodi_ai_learning", workflow)
         self.assertIn("Upgrade addons", workflow)
         self.assertIn("Verify bridge rows and XML IDs survived migration", workflow)
         self.assertIn("git diff --check", workflow)

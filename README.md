@@ -1,16 +1,15 @@
 # FACODI AI
 
-FACODI AI is an Odoo 19 Community add-on suite that provides reusable, server-side AI services and a conservative Website translation integration for FACODI.
+FACODI AI is an Odoo 19 Community add-on suite that provides reusable, server-side AI services and a FACODI Learning bridge. The legacy Website translation add-on has been retired and native Odoo Website translation remains the editorial path.
 
 ## Architecture
 
-The repository is intentionally split into three add-ons:
+The repository is intentionally split into two active add-ons:
 
 - `facodi_ai` — reusable AI runtime, providers, connections, profiles, prompts, auditing and generic Settings UI. It has no dependency on FACODI Learning, Website or eLearning.
 - `facodi_ai_learning` — optional FACODI Learning bridge. It depends on `facodi_ai` + `facodi_learning` and owns learning jobs, analyses, suggestions, slide actions, cron and Manager review UI.
-- `facodi_ai_website` — optional Website integration. It depends on `website` + `facodi_ai` and adds AI-assisted translation to Odoo's standard Website translation editor.
 
-This boundary keeps the AI runtime reusable while isolating learning and Website integrations behind dedicated addons.
+The legacy `facodi_ai_website` package remains only as a non-installable compatibility shell. It intentionally contains no runtime assets, routes, settings, or data and is excluded from the managed installation set.
 
 ## Runtime
 
@@ -34,35 +33,22 @@ For production deployments, configure only the required provider variables as bl
 
 ## Website translation
 
-Install `facodi_ai_website` to extend Odoo's normal Website translation mode. The integration uses Odoo 19's `website-translation-plugins` registry and the standard translation/history/save mechanisms rather than replacing the Website editor.
-
-The Translation panel exposes three FACODI AI actions:
-
-1. **Translate untranslated** — translates eligible local-page units still marked `to_translate`, preserving manually dirty and already translated content.
-2. **Retranslate page** — after confirmation, regenerates eligible local-page translated and untranslated units in the current target language.
-3. **Translate selected** — maps the current selection to one complete Odoo translation unit and translates that unit.
-
-Only the current Website page's local `ir.ui.view.arch_db` is eligible in V1. Shared views, menus/navigation, other Website records and non-editable regions are excluded.
-
-The browser sends translation identities, not authoritative source text. The server resolves the source term from the Website default language using Odoo's translation SHA, protects inline markup, calls the configured AI profile, validates the complete response, and returns candidate translations. The FACODI AI endpoint does **not** persist Website translations. The editor applies the result to the DOM/history; the user reviews it and uses Odoo's standard **Save** action, which persists through `/website/field/translation/update`.
-
-This design avoids duplicate pages and preserves Odoo's normal multilingual Website model.
+Native Odoo Website translation remains the authoritative translation workflow. The retired `facodi_ai_website` compatibility shell no longer installs any Website route, asset, or translation profile; editors continue to use standard Website translation, save and history flows.
 
 ## Installation
 
-Install the reusable core alone when no FACODI-specific integration is required. Install the optional bridge addons only when their dependencies are present:
+Install the reusable core alone when no FACODI-specific integration is required. Install the optional learning bridge only when its dependency is present:
 
 ```bash
 odoo -d <database> -i facodi_ai --stop-after-init
 odoo -d <database> -i facodi_ai_learning --stop-after-init
-odoo -d <database> -i facodi_ai_website --stop-after-init
 ```
 
-When upgrading an existing database from the legacy two-addon layout, update the core and install the learning bridge in the same maintenance operation so existing learning model/table data remains registered continuously:
+When upgrading an existing database from the legacy layout, update the core and install the learning bridge in the same maintenance operation so existing learning model/table data remains registered continuously:
 
 ```bash
 odoo -d <database> -u facodi_ai -i facodi_ai_learning --stop-after-init
-odoo -d <database> -u facodi_ai_learning,facodi_ai_website --stop-after-init
+odoo -d <database> -u facodi_ai,facodi_ai_learning --stop-after-init
 ```
 
 Install the Python dependency from `requirements.txt` in the same Python environment used to run Odoo.

@@ -2,7 +2,7 @@
 
 ## Scope
 
-This guide covers production operation of `facodi_ai`, `facodi_ai_learning` and `facodi_ai_website` on Odoo 19 Community. The reusable core is independent of FACODI Learning and Website; each integration addon owns only its domain-specific bridge.
+This guide covers production operation of `facodi_ai` and `facodi_ai_learning` on Odoo 19 Community. The reusable core is independent of FACODI Learning and Website; the legacy `facodi_ai_website` package is retired and intentionally non-installable.
 
 ## Connection setup and testing
 
@@ -30,15 +30,7 @@ Do not encode provider-specific behavior into Website templates or JavaScript. P
 
 ## Website translation workflow
 
-Enter Odoo's normal Website translation mode for the target language. FACODI AI adds three actions to the Translation panel:
-
-- **Translate untranslated**: translates eligible `to_translate` units only; dirty manual edits are preserved.
-- **Retranslate page**: requires confirmation and regenerates eligible current-page units.
-- **Translate selected**: translate one complete unit associated with the current editor selection.
-
-The AI call only returns candidates. Review the result in the editor. Use Odoo's standard **Save** button to persist accepted translations. Use Undo before saving to revert an AI action as one editor-history operation.
-
-The V1 service accepts only Website-local `ir.ui.view.arch_db` terms belonging to the current page. It rejects default-language targets, disabled Website languages, stale source SHAs, shared views and other models.
+Use Odoo's standard Website translation mode for the target language. The retired `facodi_ai_website` shell no longer exposes Website translation-specific AI actions or routes; the built-in translation editor and save flow remain the authoritative mechanism.
 
 ## Auditing
 
@@ -91,11 +83,10 @@ Install the core alone when Website functionality is not needed:
 odoo -d <database> -i facodi_ai --stop-after-init
 ```
 
-Install the optional integrations only where their dependencies are available:
+Install the optional learning bridge only where its dependency is available:
 
 ```bash
 odoo -d <database> -i facodi_ai_learning --stop-after-init
-odoo -d <database> -i facodi_ai_website --stop-after-init
 ```
 
 For the first upgrade from the legacy layout where learning models lived inside `facodi_ai`, update the core and install `facodi_ai_learning` in the same Odoo maintenance command:
@@ -104,10 +95,10 @@ For the first upgrade from the legacy layout where learning models lived inside 
 odoo -d <database> -u facodi_ai -i facodi_ai_learning --stop-after-init
 ```
 
-Subsequent upgrades can update all installed addons normally:
+Subsequent upgrades can update the active managed addons normally:
 
 ```bash
-odoo -d <database> -u facodi_ai,facodi_ai_learning,facodi_ai_website --stop-after-init
+odoo -d <database> -u facodi_ai,facodi_ai_learning --stop-after-init
 ```
 
 The core migration transfers legacy learning XML-ID ownership to `facodi_ai_learning`; do not uninstall the old core as a migration strategy. Always take a current database backup before a production module upgrade and validate the same commit in staging first.
@@ -126,7 +117,7 @@ Recommended controls:
 
 ## Uninstall boundaries
 
-`facodi_ai_learning` and `facodi_ai_website` are optional bridges. Removing either bridge must not make the reusable core depend on FACODI Learning or Website. Review bridge-owned data and downstream dependencies before uninstalling either integration.
+`facodi_ai_learning` is the only active optional bridge. Removing it must not make the reusable core depend on FACODI Learning. The legacy `facodi_ai_website` add-on is retired and intentionally non-installable.
 
 Before uninstalling `facodi_ai`, identify other FACODI add-ons or profiles that depend on its models/services. Do not remove the core while dependent modules remain installed.
 

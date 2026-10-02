@@ -30,7 +30,7 @@ jobs:
             --exclude-dir=__pycache__ \
             --exclude='test_repository_contract.py' \
             '(^|[^[:alnum:]_])(TODO|FIXME|CHANGEME|YOUR_[A-Z0-9_]*KEY)([^[:alnum:]_]|$)' \
-            facodi_ai facodi_ai_learning facodi_ai_website README.md docs/operations.md; then
+            facodi_ai facodi_ai_learning README.md docs/operations.md; then
             echo "Release placeholder markers found"
             exit 1
           fi
@@ -120,9 +120,9 @@ jobs:
             --workers=0 \
             --without-demo=True \
             --test-enable \
-            --test-tags=/facodi_ai,/facodi_ai_learning,/facodi_ai_website \
+            --test-tags=/facodi_ai,/facodi_ai_learning \
             --stop-after-init \
-            --init=facodi_ai,facodi_ai_learning,facodi_ai_website \
+            --init=facodi_ai,facodi_ai_learning \
             2>&1 | tee /tmp/odoo-clean-install.log
       - name: Upload clean-install log
         if: always()
@@ -152,9 +152,9 @@ jobs:
             --workers=0 \
             --without-demo=True \
             --test-enable \
-            --test-tags=/facodi_ai,/facodi_ai_learning,/facodi_ai_website \
+            --test-tags=/facodi_ai,/facodi_ai_learning \
             --stop-after-init \
-            --update=facodi_ai,facodi_ai_learning,facodi_ai_website \
+            --update=facodi_ai,facodi_ai_learning \
             2>&1 | tee /tmp/odoo-upgrade.log
       - name: Upload upgrade log
         if: always()
